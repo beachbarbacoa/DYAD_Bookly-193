@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { showError, showSuccess } from '@/utils/toast';
-import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,38 +19,27 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    
     try {
       const success = await signIn(email, password);
       
       if (success) {
-        // Check if email is verified
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user?.email_confirmed_at) {
-          showError('Please verify your email first');
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Get user role
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('business_role')
-          .eq('id', user?.id)
-          .single();
-
-        // Redirect based on role
-        if (profile?.business_role === 'owner' || profile?.business_role === 'employee') {
-          navigate('/business/dashboard');
-        } else if (profile?.business_role === 'concierge') {
-          navigate('/concierge/dashboard');
-        } else {
-          navigate(from, { replace: true });
-        }
+        showSuccess('Logged in successfully!');
+        navigate(from, { replace: true });
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      showError('Invalid credentials or network error');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      // More specific error messages
+      if (err.message.includes('Invalid login credentials')) {
+        setError('Invalid email or password');
+      } else if (err.message.includes('Email not confirmed')) {
+        setError('Please verify your email first');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+      showError(error || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -60,6 +49,13 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
         <h2 className="text-2xl font-bold text-center">Login to Your Account</h2>
+        
+        {error && (
+          <div className="p-4 text-sm text-red-700 bg-red-100 rounded-md">
+            {error}
+          </div>
+        )}
+
         <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <Label htmlFor="email">Email</Label>
@@ -69,6 +65,7 @@ const Login = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
             />
           </div>
           <div>
@@ -80,6 +77,7 @@ const Login = () => {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
