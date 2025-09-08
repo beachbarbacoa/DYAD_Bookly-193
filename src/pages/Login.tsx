@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,22 +12,17 @@ import { Loader2 } from "lucide-react";
 export function Login() {
   const [email, setEmail] = useState("test@example.com");
   const [password, setPassword] = useState("password123");
-  const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
     try {
       await signIn(email, password);
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       // Error is already shown by signIn
-    } finally {
-      setIsLoading(false);
     }
   };
 

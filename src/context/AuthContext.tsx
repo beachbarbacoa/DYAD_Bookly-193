@@ -1,37 +1,69 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { showError, showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 
-interface AuthContextProps {
+interface AuthState {
   user: User | null;
   role: string | null;
   isLoading: boolean;
+}
+
+interface AuthActions {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<(AuthState & AuthActions) | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    role: null,
+    isLoading: true
+  });
   const navigate = useNavigate();
+
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      setState(prev => ({
+        ...prev,
+        user: data,
+        role: data.business_role || 'concierge',
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
+      if (error) {
+        console.error('Session check error:', error);
+        setState(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+
       if (session?.user) {
         await fetchUserProfile(session.user.id);
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
-      setIsLoading(false);
     };
 
     initializeAuth();
@@ -42,34 +74,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           await fetchUserProfile(session.user.id);
           navigate('/');
         } else {
-          setUser(null);
-          setRole(null);
+          setState({
+            user: null,
+            role: null,
+            isLoading: false
+          });
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [fetchUserProfile, navigate]);
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      setUser(data);
-      setRole(data.business_role || 'concierge');
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
+  const signIn = useCallback(async (email: string, password: string) => {
+    setState(prev => ({ ...prev, isLoading: true }));
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -84,25 +102,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         await fetchUserProfile(data.user.id);
         showSuccess('Logged in successfully!');
       }
-    } catch (error) {
+    } catch (error: any) {
       showError(error.message || 'Login failed');
       throw error;
     } finally {
-      setIsLoading(false);
+      setState(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [fetchUserProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
       navigate('/login');
     } catch (error) {
       console.error('Sign out error:', error);
     }
-  };
+  }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, role, isLoading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        signIn,
+        signOut
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
