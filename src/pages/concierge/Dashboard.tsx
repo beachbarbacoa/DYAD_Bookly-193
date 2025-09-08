@@ -6,7 +6,7 @@ import { Navigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
 import { Commissions } from "./Commissions"
 
-export const ConciergeDashboard = () => {
+const ConciergeDashboard = () => {
   const { user, role, isLoading } = useAuth()
 
   if (isLoading) {
@@ -48,3 +48,5 @@ export const ConciergeDashboard = () => {
     </div>
   )
 }
+
+export default ConciergeDashboard
