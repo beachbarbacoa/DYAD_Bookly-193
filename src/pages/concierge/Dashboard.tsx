@@ -17,7 +17,11 @@ export const ConciergeDashboard = () => {
     )
   }
 
-  if (!user || role !== 'concierge') {
+  if (!user) {
+    return <Navigate to="/login" state={{ from: '/concierge/dashboard' }} replace />
+  }
+
+  if (role !== 'concierge') {
     return <Navigate to="/" replace />
   }
 

@@ -19,7 +19,11 @@ export const BusinessDashboard = () => {
     )
   }
 
-  if (!user || (role !== 'owner' && role !== 'employee')) {
+  if (!user) {
+    return <Navigate to="/login" state={{ from: '/business/dashboard' }} replace />
+  }
+
+  if (role !== 'owner' && role !== 'employee') {
     return <Navigate to="/" replace />
   }
 
