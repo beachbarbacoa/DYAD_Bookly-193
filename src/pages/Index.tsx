@@ -9,7 +9,7 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
@@ -26,23 +26,23 @@ const Index = () => {
           {user ? (
             <>
               {role === 'owner' || role === 'employee' ? (
-                <Button asChild className="min-w-[200px]">
+                <Button asChild>
                   <Link to="/business/dashboard">Business Portal</Link>
                 </Button>
               ) : null}
               {role === 'concierge' ? (
-                <Button asChild className="min-w-[200px]">
+                <Button asChild>
                   <Link to="/concierge/dashboard">Concierge Portal</Link>
                 </Button>
               ) : null}
             </>
           ) : (
             <>
-              <Button asChild className="min-w-[200px]">
+              <Button asChild>
                 <Link to="/signup">Sign Up</Link>
               </Button>
-              <Button variant="outline" asChild className="min-w-[200px]">
-                <Link to="/signup">Login</Link>
+              <Button variant="outline" asChild>
+                <Link to="/login">Login</Link>
               </Button>
             </>
           )}
