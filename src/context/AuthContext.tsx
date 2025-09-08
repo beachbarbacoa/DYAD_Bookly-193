@@ -2,12 +2,13 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { showError, showSuccess } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
 
 type AuthContextType = {
   user: User | null;
   role: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -17,28 +18,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check active session on initial load
-    const session = supabase.auth.getSession();
-    
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+      setIsLoading(false);
+    };
+
+    checkSession();
+
     // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
           await fetchUserProfile(session.user.id);
+          navigate('/');
         } else {
           setUser(null);
           setRole(null);
         }
-        setIsLoading(false);
       }
     );
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -70,11 +78,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user) {
         await fetchUserProfile(data.user.id);
         showSuccess('Logged in successfully!');
-        return true;
       }
-      return false;
     } catch (error) {
-      showError('Invalid login credentials');
+      showError(error.message || 'Invalid login credentials');
       throw error;
     } finally {
       setIsLoading(false);
@@ -86,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.signOut();
       setUser(null);
       setRole(null);
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -106,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

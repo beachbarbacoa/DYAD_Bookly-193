@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
-import { useAuth } from "@/context/AuthContext"
-import { useState } from "react"
-import { showError, showSuccess } from "@/utils/toast"
-import { supabase } from "@/integrations/supabase/client"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
-const SignUp = () => {
+export function SignUp() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,12 +15,13 @@ const SignUp = () => {
     lastName: '',
     companyName: '',
     role: 'concierge'
-  })
-  const [loading, setLoading] = useState(false)
+  });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -33,11 +34,10 @@ const SignUp = () => {
             role: formData.role
           }
         }
-      })
+      });
 
-      if (error) throw error
+      if (error) throw error;
       
-      // Create user profile after successful signup
       if (data.user) {
         await supabase.from('user_profiles').insert({
           id: data.user.id,
@@ -46,24 +46,17 @@ const SignUp = () => {
           last_name: formData.lastName,
           business_role: formData.role === 'business' ? 'owner' : null,
           company_name: formData.companyName
-        })
-      }
+        });
 
-      showSuccess('Sign up successful! Please check your email to confirm your account.')
-      setFormData({
-        email: '',
-        password: '',
-        firstName: '',
-        lastName: '',
-        companyName: '',
-        role: 'concierge'
-      })
+        showSuccess('Sign up successful! Please check your email to confirm your account.');
+        navigate('/login');
+      }
     } catch (error) {
-      showError(error.message)
+      showError(error.message || 'Failed to sign up');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -79,6 +72,7 @@ const SignUp = () => {
                 required
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                placeholder="First name"
               />
             </div>
             <div>
@@ -89,6 +83,7 @@ const SignUp = () => {
                 required
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                placeholder="Last name"
               />
             </div>
           </div>
@@ -101,6 +96,7 @@ const SignUp = () => {
               required
               value={formData.companyName}
               onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+              placeholder="Your company name"
             />
           </div>
 
@@ -112,6 +108,7 @@ const SignUp = () => {
               required
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder="your@email.com"
             />
           </div>
 
@@ -124,6 +121,7 @@ const SignUp = () => {
               minLength={6}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
+              placeholder="At least 6 characters"
             />
           </div>
 
@@ -148,18 +146,21 @@ const SignUp = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Sign Up'}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating account...
+              </>
+            ) : 'Sign Up'}
           </Button>
         </form>
         <div className="text-center text-sm">
           Already have an account?{' '}
-          <Link to="/" className="text-blue-500 hover:underline">
+          <Link to="/login" className="text-blue-500 hover:underline">
             Sign in
           </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-export default SignUp

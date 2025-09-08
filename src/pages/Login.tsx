@@ -7,9 +7,9 @@ import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
 import { Loader2 } from "lucide-react";
 
-export function Login() {  // Changed to named export
-  const [email, setEmail] = useState("test@example.com");
-  const [password, setPassword] = useState("password123");
+export function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -19,13 +19,10 @@ export function Login() {  // Changed to named export
     setIsLoading(true);
     
     try {
-      const success = await signIn(email, password);
-      if (success) {
-        showSuccess("Logged in successfully!");
-        navigate("/");
-      }
-    } catch (error: any) {
-      showError(error.message || "Invalid login credentials");
+      await signIn(email, password);
+      navigate('/');
+    } catch (error) {
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,6 +41,7 @@ export function Login() {  // Changed to named export
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
             />
           </div>
           <div>
@@ -55,6 +53,7 @@ export function Login() {  // Changed to named export
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
             />
           </div>
           <Button 
@@ -71,7 +70,7 @@ export function Login() {  // Changed to named export
           </Button>
         </form>
         <div className="text-center text-sm">
-          Don't have an account?{" "}
+          Don't have an account?{' '}
           <Link to="/signup" className="text-blue-500 hover:underline">
             Sign up
           </Link>
@@ -80,5 +79,3 @@ export function Login() {  // Changed to named export
     </div>
   );
 }
-
-// Remove the default export
