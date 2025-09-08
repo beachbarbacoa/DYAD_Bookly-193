@@ -1,8 +1,37 @@
-// ... (keep existing imports)
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { showSuccess, showError } from '@/utils/toast';
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+// Type definitions
+type User = {
+  id: string;
+  email?: string;
+} | null;
+
+type UserProfile = {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  business_role?: 'owner' | 'employee' | 'concierge' | null;
+} | null;
+
+type AuthContextType = {
+  user: User;
+  profile: UserProfile;
+  role: 'owner' | 'employee' | 'concierge' | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
+};
+
+// Create context with initial undefined value
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Auth Provider Component
+const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User>(null);
+  const [profile, setProfile] = useState<UserProfile>(null);
   const [role, setRole] = useState<'owner' | 'employee' | 'concierge' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user) {
         setUser(data.user);
         await fetchUserProfile(data.user.id);
-        return true; // Success
+        return true;
       }
       return false;
     } catch (error) {
@@ -82,5 +111,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ... rest of the context code
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  const value = {
+    user,
+    profile,
+    role,
+    isLoading,
+    signIn,
+    signOut
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+// Custom hook to use the auth context
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Named exports
+export { AuthProvider, useAuth };
