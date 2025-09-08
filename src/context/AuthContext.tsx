@@ -8,7 +8,7 @@ type AuthContextType = {
   user: User | null;
   role: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 };
 
@@ -20,10 +20,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Debug session state
   useEffect(() => {
-    // Check active session on initial load
+    console.log('Auth state changed - User:', user, 'Role:', role);
+  }, [user, role]);
+
+  useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Checking initial session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Session check error:', error);
+        return;
+      }
+
+      console.log('Initial session:', session);
       if (session?.user) {
         await fetchUserProfile(session.user.id);
       }
@@ -32,9 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     checkSession();
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change event:', event, 'Session:', session);
         if (session?.user) {
           await fetchUserProfile(session.user.id);
           navigate('/');
@@ -50,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -58,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
+      console.log('User profile data:', data);
       setUser(data);
       setRole(data.business_role || 'concierge');
     } catch (error) {
@@ -65,23 +79,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log('Attempting sign in with:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sign in error:', error);
+        showError(error.message);
+        return false;
+      }
 
+      console.log('Sign in successful, user:', data.user);
       if (data.user) {
         await fetchUserProfile(data.user.id);
         showSuccess('Logged in successfully!');
+        return true;
       }
+      return false;
     } catch (error) {
-      showError(error.message || 'Invalid login credentials');
-      throw error;
+      console.error('Unexpected sign in error:', error);
+      showError('Login failed. Please try again.');
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -89,12 +113,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       await supabase.auth.signOut();
       setUser(null);
       setRole(null);
       navigate('/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Sign out error:', error);
     }
   };
 

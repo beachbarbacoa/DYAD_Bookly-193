@@ -8,8 +8,8 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Loader2 } from "lucide-react";
 
 export function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("test@example.com");
+  const [password, setPassword] = useState("password123");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -19,10 +19,14 @@ export function Login() {
     setIsLoading(true);
     
     try {
-      await signIn(email, password);
-      navigate('/');
+      const success = await signIn(email, password);
+      if (success) {
+        showSuccess("Redirecting...");
+        navigate("/");
+      }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login page error:', error);
+      showError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +45,7 @@ export function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="test@example.com"
             />
           </div>
           <div>
@@ -53,7 +57,7 @@ export function Login() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="password123"
             />
           </div>
           <Button 
