@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { showError } from '@/utils/toast'
 
-export const ReservationPage = () => {
+const ReservationPage = () => {
   const { businessId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' } = useParams()
   const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -55,3 +55,5 @@ export const ReservationPage = () => {
     </div>
   )
 }
+
+export default ReservationPage
