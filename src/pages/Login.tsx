@@ -16,17 +16,24 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      showError("Please enter both email and password");
+      return;
+    }
+
     setIsLoading(true);
+    console.log('Attempting login...');
     
     try {
       const success = await signIn(email, password);
+      console.log('Login result:', success);
       if (success) {
-        showSuccess("Redirecting...");
+        showSuccess("Logged in successfully!");
         navigate("/");
       }
-    } catch (error) {
-      console.error('Login page error:', error);
-      showError("Login failed. Please try again.");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      showError(error.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

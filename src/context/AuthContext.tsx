@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { showError, showSuccess } from '@/utils/toast';
@@ -14,16 +14,30 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Debug session state
-  useEffect(() => {
-    console.log('Auth state changed - User:', user, 'Role:', role);
-  }, [user, role]);
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    try {
+      console.log('Fetching user profile for:', userId);
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      console.log('User profile data:', data);
+      setUser(data);
+      setRole(data.business_role || 'concierge');
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -58,28 +72,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [fetchUserProfile, navigate]);
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      console.log('Fetching user profile for:', userId);
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      console.log('User profile data:', data);
-      setUser(data);
-      setRole(data.business_role || 'concierge');
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       console.log('Attempting sign in with:', email);
@@ -109,9 +104,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchUserProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       console.log('Signing out...');
       await supabase.auth.signOut();
@@ -121,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Sign out error:', error);
     }
-  };
+  }, [navigate]);
 
   return (
     <AuthContext.Provider
@@ -136,12 +131,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
