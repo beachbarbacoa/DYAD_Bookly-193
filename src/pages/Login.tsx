@@ -5,8 +5,9 @@ import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { useState } from "react"
 import { showError, showSuccess } from "@/utils/toast"
+import { supabase } from "@/integrations/supabase/client"
 
-export const Login = () => {
+const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -85,3 +86,5 @@ export const Login = () => {
     </div>
   )
 }
+
+export default Login
