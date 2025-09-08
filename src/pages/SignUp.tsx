@@ -7,7 +7,7 @@ import { useState } from "react"
 import { showError, showSuccess } from "@/utils/toast"
 import { supabase } from "@/integrations/supabase/client"
 
-export const SignUp = () => {
+const SignUp = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -161,3 +161,5 @@ export const SignUp = () => {
     </div>
   )
 }
+
+export default SignUp
