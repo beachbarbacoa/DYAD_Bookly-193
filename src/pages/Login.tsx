@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { useState } from "react"
 import { showError, showSuccess } from "@/utils/toast"
@@ -11,6 +11,10 @@ export const Login = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const from = location.state?.from?.pathname || '/'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,6 +22,23 @@ export const Login = () => {
     try {
       await signIn(email, password)
       showSuccess('Logged in successfully!')
+      
+      // Get user role after successful login
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('business_role')
+        .eq('id', user?.id)
+        .single()
+
+      // Redirect based on role
+      if (profile?.business_role === 'owner' || profile?.business_role === 'employee') {
+        navigate('/business/dashboard')
+      } else if (profile?.business_role === 'concierge') {
+        navigate('/concierge/dashboard')
+      } else {
+        navigate(from, { replace: true })
+      }
     } catch (error) {
       showError(error.message)
     } finally {

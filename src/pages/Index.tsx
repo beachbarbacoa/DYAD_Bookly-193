@@ -1,12 +1,11 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { MadeWithDyad } from '@/components/made-with-dyad'
 import { useAuth } from '@/context/AuthContext'
 import { Loader2 } from 'lucide-react'
 
 const Index = () => {
-  const { isLoading } = useAuth()
-  const navigate = useNavigate()
+  const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -24,14 +23,11 @@ const Index = () => {
           #1 Reservation App for Increasing Restaurant Reservations and Tour Operator Bookings!
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button onClick={() => navigate('/business/dashboard')}>
-            Business Portal
+          <Button asChild>
+            <Link to="/login">Login</Link>
           </Button>
-          <Button onClick={() => navigate('/concierge/dashboard')}>
-            Concierge Portal
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/signup')}>
-            Sign Up
+          <Button variant="outline" asChild>
+            <Link to="/signup">Sign Up</Link>
           </Button>
         </div>
       </div>
