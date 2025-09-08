@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Loader2 } from 'lucide-react'
 
 const Index = () => {
-  const { user, role, isLoading } = useAuth()
+  const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -23,29 +23,12 @@ const Index = () => {
           #1 Reservation App for Increasing Restaurant Reservations and Tour Operator Bookings!
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {user ? (
-            <>
-              {role === 'owner' || role === 'employee' ? (
-                <Button asChild>
-                  <Link to="/business/dashboard">Business Portal</Link>
-                </Button>
-              ) : null}
-              {role === 'concierge' ? (
-                <Button asChild>
-                  <Link to="/concierge/dashboard">Concierge Portal</Link>
-                </Button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Button asChild>
-                <Link to="/signup">Sign Up</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link to="/login">Login</Link>
-              </Button>
-            </>
-          )}
+          <Button asChild>
+            <Link to="/business/dashboard">Business Portal</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/concierge/dashboard">Concierge Portal</Link>
+          </Button>
         </div>
       </div>
       <MadeWithDyad />
