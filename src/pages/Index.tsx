@@ -8,14 +8,17 @@ const Index = () => {
       <div className="max-w-2xl text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">Welcome to Bookly</h1>
         <p className="text-lg text-gray-600 mb-8">
-          The easiest way to book reservations with local businesses
+          #1 Reservation App for Increasing Restaurant Reservations and Tour Operator Bookings!
         </p>
-        <div className="flex gap-4 justify-center">
-          <Button asChild>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild className="min-w-[200px]">
             <Link to="/business/dashboard">Business Portal</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/reserve/demo">Make a Reservation</Link>
+          <Button asChild className="min-w-[200px]">
+            <Link to="/concierge/dashboard">Concierge Portal</Link>
+          </Button>
+          <Button variant="outline" asChild className="min-w-[200px]">
+            <Link to="/signup">Sign Up</Link>
           </Button>
         </div>
       </div>
