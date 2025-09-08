@@ -10,6 +10,7 @@ import { BusinessDashboard } from "./pages/business/Dashboard";
 import { AuthProvider } from "@/context/AuthContext";
 import { ConciergeDashboard } from "./pages/concierge/Dashboard";
 import { SignUp } from "./pages/SignUp";
+import { Login } from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/reserve/:businessId" element={<ReservationPage />} />
             <Route path="/business/dashboard" element={<BusinessDashboard />} />
             <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
