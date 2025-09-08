@@ -27,7 +27,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const navigate = useNavigate();
 
+  const log = (message: string) => {
+    console.log(`[AuthContext] ${message}`);
+  };
+
   const fetchUserProfile = useCallback(async (userId: string) => {
+    log(`Fetching profile for user: ${userId}`);
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -35,8 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        log(`Profile fetch error: ${error.message}`);
+        throw error;
+      }
 
+      log(`Profile fetched successfully: ${JSON.stringify(data)}`);
       setState(prev => ({
         ...prev,
         user: data,
@@ -44,24 +53,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading: false
       }));
     } catch (error) {
-      console.error('Profile fetch error:', error);
+      log(`Error in fetchUserProfile: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
+      log('Initializing auth...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('Session check error:', error);
+        log(`Session check error: ${error.message}`);
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
       if (session?.user) {
+        log(`Found existing session for user: ${session.user.email}`);
         await fetchUserProfile(session.user.id);
       } else {
+        log('No active session found');
         setState(prev => ({ ...prev, isLoading: false }));
       }
     };
@@ -70,10 +82,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        log(`Auth state changed: ${event}`);
         if (session?.user) {
+          log(`User authenticated: ${session.user.email}`);
           await fetchUserProfile(session.user.id);
           navigate('/');
         } else {
+          log('User signed out');
           setState({
             user: null,
             role: null,
@@ -87,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUserProfile, navigate]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    log(`Attempting sign in with email: ${email}`);
     setState(prev => ({ ...prev, isLoading: true }));
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -95,27 +111,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        log(`Sign in error: ${error.message}`);
         throw error;
       }
 
       if (data.user) {
+        log(`Sign in successful for user: ${data.user.email}`);
         await fetchUserProfile(data.user.id);
         showSuccess('Logged in successfully!');
       }
     } catch (error: any) {
+      log(`Error in signIn: ${error.message || 'Unknown error'}`);
       showError(error.message || 'Login failed');
       throw error;
     } finally {
+      log('Sign in attempt completed');
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [fetchUserProfile]);
 
   const signOut = useCallback(async () => {
+    log('Attempting sign out');
     try {
       await supabase.auth.signOut();
       navigate('/login');
     } catch (error) {
-      console.error('Sign out error:', error);
+      log(`Sign out error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [navigate]);
 
