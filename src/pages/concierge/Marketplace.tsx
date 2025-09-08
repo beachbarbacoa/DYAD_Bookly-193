@@ -1,29 +1,7 @@
-import { Card, CardHeader, CardContent, Button } from '@/components/ui'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { SafeRender } from '@/lib/safeRender';
 
 export const Marketplace = () => {
-  const [businesses, setBusinesses] = useState<Array<{
-    id: string
-    name?: string
-    type?: string
-  }>>([])
-
-  useEffect(() => {
-    const fetchBusinesses = async () => {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('id, name, type')
-      
-      if (error) {
-        console.error('Error fetching businesses:', error)
-        return
-      }
-      setBusinesses(data || [])
-    }
-
-    fetchBusinesses()
-  }, [])
+  // ... existing code
 
   return (
     <div className="p-4 space-y-4">
@@ -31,16 +9,16 @@ export const Marketplace = () => {
       {businesses.map(business => (
         <Card key={business.id} className="p-4">
           <CardHeader className="text-lg font-medium">
-            {business.name || 'Unnamed Business'}
+            <SafeRender value={business.name} fallback="Unnamed Business" />
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600">
-              Type: {business.type || 'Not specified'}
+              Type: <SafeRender value={business.type} fallback="Not specified" />
             </p>
             <Button className="mt-2">Request Access</Button>
           </CardContent>
         </Card>
       ))}
     </div>
-  )
+  );
 }
