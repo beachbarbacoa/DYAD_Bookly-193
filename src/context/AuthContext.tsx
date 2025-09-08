@@ -1,147 +1,36 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { showError, showSuccess } from '@/utils/toast';
-
-// Type definitions
-type User = {
-  id: string;
-  email?: string;
-} | null;
-
-type UserProfile = {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  business_role?: 'owner' | 'employee' | 'concierge' | null;
-} | null;
-
-type AuthContextType = {
-  user: User;
-  profile: UserProfile;
-  role: 'owner' | 'employee' | 'concierge' | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  signOut: () => Promise<void>;
-};
-
-// Create context with initial value
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  role: null,
-  isLoading: true,
-  signIn: async () => false,
-  signOut: async () => {}
-});
-
-// Auth Provider component
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(null);
-  const [profile, setProfile] = useState<UserProfile>(null);
-  const [role, setRole] = useState<'owner' | 'employee' | 'concierge' | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setProfile(data);
-        setRole(data.business_role || null);
-      }
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-    }
-  };
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        await fetchUserProfile(session.user.id);
-        showSuccess('Logged in successfully!');
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setProfile(null);
-        setRole(null);
-      }
+const signIn = async (email: string, password: string) => {
+  try {
+    console.log("[AuthContext] Signing in with:", { email }); // Debug log
+    setIsLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email, 
+      password 
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    console.log("[AuthContext] SignIn response:", { data, error }); // Debug log
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
-
-      if (error) throw error;
-      
-      if (data.user) {
-        // Bypass email verification in development
-        if (import.meta.env.DEV && !data.user.email_confirmed_at) {
-          console.warn('Bypassing email verification in development');
-          await supabase.auth.updateUser({
-            data: { email_confirmed_at: new Date().toISOString() }
-          });
-        }
-
-        setUser(data.user);
-        await fetchUserProfile(data.user.id);
-        return true;
+    if (error) {
+      console.error("[AuthContext] Supabase error:", error); // Detailed error
+      throw error;
+    }
+    
+    if (data?.user) {
+      // Bypass email verification in development
+      if (import.meta.env.DEV && !data.user.email_confirmed_at) {
+        console.log("[AuthContext] Bypassing email verification in dev");
+        await supabase.auth.updateUser({
+          data: { email_confirmed_at: new Date().toISOString() }
+        });
       }
-      return false;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      showError(error.message);
-      return false;
-    } finally {
-      setIsLoading(false);
+
+      await fetchUserProfile(data.user.id);
+      return true;
     }
-  };
-
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, profile, role, isLoading, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-// Custom hook to use auth context
-export function useAuth() {
-  return useContext(AuthContext);
-}
+    return false;
+  } catch (error: any) {
+    console.error("[AuthContext] SignIn failed:", error); // Detailed error
+    throw error; // Re-throw to be caught by component
+  } finally {
+    setIsLoading(false);
+  }
+};
