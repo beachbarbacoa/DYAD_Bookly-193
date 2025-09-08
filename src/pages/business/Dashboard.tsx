@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext"
 import { Navigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
 
-export const BusinessDashboard = () => {
+const BusinessDashboard = () => {
   const { user, role, isLoading } = useAuth()
 
   if (isLoading) {
@@ -66,3 +66,5 @@ export const BusinessDashboard = () => {
     </div>
   )
 }
+
+export default BusinessDashboard
