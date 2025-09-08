@@ -8,6 +8,8 @@ import NotFound from "./pages/NotFound";
 import { ReservationPage } from "./pages/reserve/[businessId]";
 import { BusinessDashboard } from "./pages/business/Dashboard";
 import { AuthProvider } from "@/context/AuthContext";
+import { ConciergeDashboard } from "./pages/concierge/Dashboard";
+import { SignUp } from "./pages/SignUp";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/reserve/:businessId" element={<ReservationPage />} />
             <Route path="/business/dashboard" element={<BusinessDashboard />} />
+            <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
+            <Route path="/signup" element={<SignUp />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
