@@ -6,8 +6,10 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 import { showSuccess, showError } from "@/utils/toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { useAuth } from "@/context/AuthContext"
 
 export const Profile = ({ userRole }: { userRole: 'owner' | 'employee' }) => {
+  const { user } = useAuth()
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
@@ -17,15 +19,16 @@ export const Profile = ({ userRole }: { userRole: 'owner' | 'employee' }) => {
   })
 
   const { data: profile } = useQuery({
-    queryKey: ['userProfile'],
+    queryKey: ['userProfile', user?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', 'current_user_id') // Replace with actual user ID
+        .eq('id', user?.id)
         .single()
       return data
     },
+    enabled: !!user?.id,
     onSuccess: (data) => {
       if (data) {
         setProfileData({
@@ -48,7 +51,7 @@ export const Profile = ({ userRole }: { userRole: 'owner' | 'employee' }) => {
           last_name: profileData.lastName,
           phone: profileData.phone
         })
-        .eq('id', 'current_user_id')
+        .eq('id', user?.id)
       if (error) throw error
     },
     onSuccess: () => showSuccess('Profile updated successfully'),
@@ -57,15 +60,17 @@ export const Profile = ({ userRole }: { userRole: 'owner' | 'employee' }) => {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !user?.id) return
 
     const fileExt = file.name.split('.').pop()
-    const fileName = `${Math.random()}.${fileExt}`
+    const fileName = `${user.id}/${Math.random()}.${fileExt}`
     const filePath = `${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file)
+      .upload(filePath, file, {
+        upsert: true
+      })
 
     if (uploadError) {
       showError('Avatar upload failed')
@@ -79,7 +84,7 @@ export const Profile = ({ userRole }: { userRole: 'owner' | 'employee' }) => {
     const { error: updateError } = await supabase
       .from('user_profiles')
       .update({ avatar_url: publicUrl })
-      .eq('id', 'current_user_id')
+      .eq('id', user.id)
 
     if (updateError) {
       showError('Failed to update avatar')

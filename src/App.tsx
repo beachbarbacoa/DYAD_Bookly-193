@@ -7,24 +7,27 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { ReservationPage } from "./pages/reserve/[businessId]";
 import { BusinessDashboard } from "./pages/business/Dashboard";
+import { AuthProvider } from "@/context/AuthContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/reserve/:businessId" element={<ReservationPage />} />
-          <Route path="/business/dashboard" element={<BusinessDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/reserve/:businessId" element={<ReservationPage />} />
+            <Route path="/business/dashboard" element={<BusinessDashboard />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
