@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { useState } from "react"
 import { showError, showSuccess } from "@/utils/toast"
+import { supabase } from "@/integrations/supabase/client"
 
 export const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -12,10 +13,10 @@ export const SignUp = () => {
     password: '',
     firstName: '',
     lastName: '',
+    companyName: '',
     role: 'concierge'
   })
   const [loading, setLoading] = useState(false)
-  const { signOut } = useAuth()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,18 +29,33 @@ export const SignUp = () => {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
+            company_name: formData.companyName,
             role: formData.role
           }
         }
       })
 
       if (error) throw error
+      
+      // Create user profile after successful signup
+      if (data.user) {
+        await supabase.from('user_profiles').insert({
+          id: data.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          business_role: formData.role === 'business' ? 'owner' : null,
+          company_name: formData.companyName
+        })
+      }
+
       showSuccess('Sign up successful! Please check your email to confirm your account.')
       setFormData({
         email: '',
         password: '',
         firstName: '',
         lastName: '',
+        companyName: '',
         role: 'concierge'
       })
     } catch (error) {
@@ -76,6 +92,18 @@ export const SignUp = () => {
               />
             </div>
           </div>
+
+          <div>
+            <Label htmlFor="companyName">Company Name</Label>
+            <Input
+              id="companyName"
+              type="text"
+              required
+              value={formData.companyName}
+              onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+            />
+          </div>
+
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -86,6 +114,7 @@ export const SignUp = () => {
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
+
           <div>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -97,6 +126,7 @@ export const SignUp = () => {
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
           </div>
+
           <div>
             <Label>Account Type</Label>
             <div className="flex space-x-4 mt-2">
@@ -116,6 +146,7 @@ export const SignUp = () => {
               </Button>
             </div>
           </div>
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Creating account...' : 'Sign Up'}
           </Button>

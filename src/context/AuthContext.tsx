@@ -1,25 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-
-type UserRole = 'owner' | 'employee' | 'concierge' | null
-
-interface AuthContextType {
-  user: any
-  role: UserRole
-  isLoading: boolean
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  role: null,
-  isLoading: true,
-  signOut: async () => {}
-})
+// ... (keep all existing imports and types)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<UserRole>(null)
+  const [companyName, setCompanyName] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -33,14 +17,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (session?.user) {
         setUser(session.user)
-        // Fetch user role from profile
+        // Fetch user profile including company name
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('business_role')
+          .select('business_role, company_name')
           .eq('id', session.user.id)
           .single()
         
         setRole(profile?.business_role || null)
+        setCompanyName(profile?.company_name || '')
       }
       setIsLoading(false)
     }
@@ -50,32 +35,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user)
-        // Fetch user role from profile
+        // Fetch user profile including company name
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('business_role')
+          .select('business_role, company_name')
           .eq('id', session.user.id)
           .single()
         
         setRole(profile?.business_role || null)
+        setCompanyName(profile?.company_name || '')
       } else {
         setUser(null)
         setRole(null)
+        setCompanyName('')
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, role, isLoading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  // ... (keep the rest of the AuthContext implementation)
 }
-
-export const useAuth = () => useContext(AuthContext)
