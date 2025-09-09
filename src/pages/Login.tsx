@@ -1,67 +1,95 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { debugAuth } from '@/utils/authDebug';
+import { showError, showSuccess } from '@/utils/toast';
+import { Loader2 } from 'lucide-react';
 
 export function Login() {
   const [email, setEmail] = useState('concierge@test.com');
   const [password, setPassword] = useState('password123');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
-      console.log('Attempting login with:', email);
-      await debugAuth(email); // Debug before attempt
-
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (authError) {
-        console.error('Login error details:', {
-          error: authError,
-          timestamp: new Date().toISOString()
-        });
-        throw authError;
+      if (error) {
+        showError(error.message);
+        console.error('Login error:', error);
+        return;
       }
 
-      console.log('Login success:', data);
+      showSuccess('Logged in successfully!');
       navigate('/');
     } catch (error) {
-      await debugAuth(email); // Debug after failure
-      setError(error.message || 'Login failed. Please try again.');
+      showError('An unexpected error occurred');
+      console.error('Unexpected error:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Log in'}
-        </button>
-        {error && <div className="error-message">{error}</div>}
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">Welcome back</h2>
+          <p className="text-muted-foreground mt-2">Enter your credentials to sign in</p>
+        </div>
+        
+        <form className="space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+            />
+          </div>
+          
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : 'Sign In'}
+          </Button>
+        </form>
+        
+        <div className="text-center text-sm">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-blue-500 hover:underline">
+            Sign up
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

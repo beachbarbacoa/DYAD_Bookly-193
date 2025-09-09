@@ -1,16 +1,13 @@
-'use client';
-
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { showError, showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
+import { showError } from '@/utils/toast';
 
 interface AuthState {
   user: User | null;
   role: string | null;
   isLoading: boolean;
-  error: string | null;
 }
 
 interface AuthActions {
@@ -24,59 +21,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     role: null,
-    isLoading: true,
-    error: null
+    isLoading: true
   });
   const navigate = useNavigate();
 
-  const fetchUserProfile = useCallback(async (userId: string) => {
+  const checkUserRole = useCallback(async (userId: string) => {
     try {
-      console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('business_role')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
-
-      console.log('User profile data:', data);
-      setState(prev => ({
-        ...prev,
-        user: data,
-        role: data.business_role || 'concierge',
-        isLoading: false,
-        error: null
-      }));
+      return data?.business_role || 'concierge';
     } catch (error) {
-      console.error('Profile fetch error:', error);
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        error: 'Failed to load user profile' 
-      }));
+      console.error('Role check error:', error);
+      return 'concierge';
     }
   }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('Initializing auth...');
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        console.error('Session check error:', error);
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false,
-          error: error.message 
-        }));
-        return;
-      }
-
-      console.log('Session exists:', !!session);
       if (session?.user) {
-        console.log('User from session:', session.user);
-        await fetchUserProfile(session.user.id);
+        const role = await checkUserRole(session.user.id);
+        setState({
+          user: session.user,
+          role,
+          isLoading: false
+        });
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -86,70 +61,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
         if (session?.user) {
-          console.log('New session user:', session.user);
-          await fetchUserProfile(session.user.id);
+          const role = await checkUserRole(session.user.id);
+          setState({
+            user: session.user,
+            role,
+            isLoading: false
+          });
           navigate('/');
         } else {
-          console.log('No session - logging out');
           setState({
             user: null,
             role: null,
-            isLoading: false,
-            error: null
+            isLoading: false
           });
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchUserProfile, navigate]);
+  }, [checkUserRole, navigate]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    console.log('Signing in with:', email);
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState(prev => ({ ...prev, isLoading: true }));
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Sign in response:', { data, error });
-
       if (error) {
-        throw new Error(error.message || 'Invalid login credentials');
+        showError(error.message);
+        throw error;
       }
 
       if (data.user) {
-        console.log('User signed in:', data.user);
-        await fetchUserProfile(data.user.id);
-        showSuccess('Logged in successfully!');
+        const role = await checkUserRole(data.user.id);
+        setState({
+          user: data.user,
+          role,
+          isLoading: false
+        });
       }
-    } catch (error: any) {
-      console.error('Login error details:', {
-        error,
-        timestamp: new Date().toISOString(),
-        email
-      });
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        error: error.message 
-      }));
-      showError(error.message || 'Login failed');
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
-  }, [fetchUserProfile]);
+  }, [checkUserRole]);
 
   const signOut = useCallback(async () => {
-    try {
-      console.log('Signing out...');
-      await supabase.auth.signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    await supabase.auth.signOut();
+    navigate('/login');
   }, [navigate]);
 
   return (
