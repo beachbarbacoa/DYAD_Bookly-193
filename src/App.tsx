@@ -8,6 +8,7 @@ import BusinessDashboard from '@/pages/business/Dashboard';
 import ConciergeDashboard from '@/pages/concierge/Dashboard';
 import ReservationPage from '@/pages/reserve/[businessId]';
 import TestAuth from '@/pages/TestAuth';
+import TestConnection from '@/pages/TestConnection';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
           <Route path="/reserve/:businessId" element={<ReservationPage />} />
           <Route path="/test-auth" element={<TestAuth />} />
+          <Route path="/test-connection" element={<TestConnection />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

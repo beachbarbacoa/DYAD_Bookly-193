@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     try {
+      console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -39,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
+      console.log('User profile data:', data);
       setState(prev => ({
         ...prev,
         user: data,
@@ -58,9 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('Initializing auth...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
+        console.error('Session check error:', error);
         setState(prev => ({ 
           ...prev, 
           isLoading: false,
@@ -69,7 +73,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('Session exists:', !!session);
       if (session?.user) {
+        console.log('User from session:', session.user);
         await fetchUserProfile(session.user.id);
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
@@ -80,10 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event);
         if (session?.user) {
+          console.log('New session user:', session.user);
           await fetchUserProfile(session.user.id);
           navigate('/');
         } else {
+          console.log('No session - logging out');
           setState({
             user: null,
             role: null,
@@ -98,6 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUserProfile, navigate]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    console.log('Signing in with:', email);
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -105,11 +115,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
 
+      console.log('Sign in response:', { data, error });
+
       if (error) {
         throw new Error(error.message || 'Invalid login credentials');
       }
 
       if (data.user) {
+        console.log('User signed in:', data.user);
         await fetchUserProfile(data.user.id);
         showSuccess('Logged in successfully!');
       }
@@ -131,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(async () => {
     try {
+      console.log('Signing out...');
       await supabase.auth.signOut();
       navigate('/login');
     } catch (error) {
