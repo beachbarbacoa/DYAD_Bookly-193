@@ -1,77 +1,65 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react'
+import { supabase } from '@/integrations/supabase/client'
+import { testAllAuth } from '@/utils/testAuth'
 
 export default function TestConnection() {
-  const [authResult, setAuthResult] = useState<any>(null);
-  const [dbResult, setDbResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    async function testConnection() {
-      setLoading(true);
-      console.log('Testing Supabase connection...');
+  const runTests = async () => {
+    setLoading(true)
+    setResults([])
+    
+    // Test direct database access
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .limit(1)
       
-      // Test auth connection
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'test@example.com',
-          password: 'password123'
-        });
-        
-        console.log('Auth test result:', { data, error });
-        setAuthResult({ data, error: error?.message });
-      } catch (err: any) {
-        console.error('Auth test error:', err);
-        setAuthResult({ error: err.message });
-      }
-
-      // Test database connection
-      try {
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .limit(1);
-        
-        console.log('Database test result:', { data, error });
-        setDbResult({ data, error: error?.message });
-      } catch (err: any) {
-        console.error('Database test error:', err);
-        setDbResult({ error: err.message });
-      } finally {
-        setLoading(false);
-      }
+      setResults(prev => [...prev, {
+        test: 'Database Access',
+        success: !error,
+        error: error?.message
+      }])
+    } catch (error) {
+      setResults(prev => [...prev, {
+        test: 'Database Access',
+        success: false,
+        error: error.message
+      }])
     }
 
-    testConnection();
-  }, []);
+    // Test authentication
+    await testAllAuth()
+    
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    runTests()
+  }, [])
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Testing Connection</h1>
+      <h1 className="text-2xl font-bold mb-4">Connection Tests</h1>
+      <Button onClick={runTests} disabled={loading}>
+        {loading ? 'Running Tests...' : 'Run Tests Again'}
+      </Button>
       
-      <div className="space-y-6">
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Authentication Test</h2>
-          {loading ? (
-            <p>Testing...</p>
-          ) : (
-            <pre className="text-sm bg-gray-100 p-2 rounded">
-              {JSON.stringify(authResult, null, 2)}
-            </pre>
-          )}
-        </div>
-
-        <div className="p-4 border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Database Test</h2>
-          {loading ? (
-            <p>Testing...</p>
-          ) : (
-            <pre className="text-sm bg-gray-100 p-2 rounded">
-              {JSON.stringify(dbResult, null, 2)}
-            </pre>
-          )}
-        </div>
+      <div className="mt-6 space-y-4">
+        {results.map((result, i) => (
+          <div key={i} className={`p-4 border rounded-lg ${
+            result.success ? 'bg-green-50' : 'bg-red-50'
+          }`}>
+            <h3 className="font-medium">{result.test}</h3>
+            <p>Status: {result.success ? '✅ Success' : '❌ Failed'}</p>
+            {result.error && (
+              <pre className="mt-2 text-sm text-red-600">{result.error}</pre>
+            )}
+          </div>
+        ))}
       </div>
     </div>
-  );
+  )
 }
