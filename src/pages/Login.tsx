@@ -8,18 +8,29 @@ import { showError } from "@/utils/toast";
 import { Loader2 } from "lucide-react";
 
 export function Login() {
-  const [email, setEmail] = useState("test@example.com");
-  const [password, setPassword] = useState("password123");
-  const { signIn, isLoading, error } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    
     try {
-      await signIn(email, password);
+      console.log('Attempting login with:', { email });
+      const result = await signIn(email, password);
+      console.log('Login result:', result);
       navigate('/');
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      setError(error.message || 'Login failed. Please check your credentials.');
+      showError(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -41,7 +52,7 @@ export function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="test@example.com"
+              placeholder="your@email.com"
             />
           </div>
           <div>
@@ -53,7 +64,7 @@ export function Login() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="password123"
+              placeholder="Your password"
             />
           </div>
           <Button 
