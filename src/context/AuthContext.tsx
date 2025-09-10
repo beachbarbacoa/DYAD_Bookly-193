@@ -4,6 +4,11 @@ import { User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { showError } from '@/utils/toast';
 
+// Add debug logging
+const debug = (...args: any[]) => {
+  console.log('[AuthContext]', ...args);
+};
+
 interface AuthState {
   user: User | null;
   role: string | null;
@@ -27,6 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkUserRole = useCallback(async (userId: string) => {
     try {
+      debug('Checking role for user:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('business_role')
@@ -34,18 +40,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
-      return data?.business_role || 'concierge';
+      const role = data?.business_role || 'concierge';
+      debug('Determined role:', role);
+      return role;
     } catch (error) {
-      console.error('Role check error:', error);
+      debug('Role check error:', error);
       return 'concierge';
     }
   }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      debug('Initializing auth...');
+      const { data: { session }, error } = await supabase.auth.getSession();
       
+      if (error) {
+        debug('Session error:', error);
+      }
+
       if (session?.user) {
+        debug('Found existing session:', session.user);
         const role = await checkUserRole(session.user.id);
         setState({
           user: session.user,
@@ -53,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           isLoading: false
         });
       } else {
+        debug('No existing session found');
         setState(prev => ({ ...prev, isLoading: false }));
       }
     };
@@ -61,6 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        debug('Auth state changed:', event, session);
         if (session?.user) {
           const role = await checkUserRole(session.user.id);
           setState({
@@ -79,10 +95,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      debug('Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
   }, [checkUserRole, navigate]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    debug('Signing in with:', email);
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
@@ -92,11 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        debug('Login error:', error);
         showError(error.message);
         throw error;
       }
 
       if (data.user) {
+        debug('Login successful:', data.user);
         const role = await checkUserRole(data.user.id);
         setState({
           user: data.user,
@@ -105,12 +127,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
       }
     } catch (error) {
+      debug('Login failed:', error);
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
   }, [checkUserRole]);
 
   const signOut = useCallback(async () => {
+    debug('Signing out...');
     await supabase.auth.signOut();
     navigate('/login');
   }, [navigate]);
