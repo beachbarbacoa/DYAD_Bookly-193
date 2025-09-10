@@ -33,8 +33,12 @@ export function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Welcome back</h2>
-          <p className="text-muted-foreground mt-2">Enter your credentials to sign in</p>
+          <h1 className="text-4xl font-bold mb-2">Bookly</h1>
+          <p className="text-lg text-gray-600 mb-6">
+            #1 Booking App for Restaurants and Tour Operators
+          </p>
+          <h2 className="text-2xl font-semibold">Sign In</h2>
+          <p className="text-muted-foreground mt-2">Enter your credentials</p>
         </div>
         
         <form className="space-y-6" onSubmit={handleLogin}>
