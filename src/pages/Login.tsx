@@ -1,41 +1,28 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { showError, showSuccess } from '@/utils/toast';
+import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export function Login() {
   const [email, setEmail] = useState('concierge@test.com');
   const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        showError(error.message);
-        console.error('Login error:', error);
-        return;
-      }
-
-      showSuccess('Logged in successfully!');
-      navigate('/');
+      await signIn(email, password);
+      // AuthContext will handle the redirect after successful login
     } catch (error) {
-      showError('An unexpected error occurred');
-      console.error('Unexpected error:', error);
-    } finally {
       setLoading(false);
     }
   };

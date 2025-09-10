@@ -3,9 +3,18 @@ import { Button } from '@/components/ui/button'
 import { MadeWithDyad } from '@/components/made-with-dyad'
 import { useAuth } from '@/context/AuthContext'
 import { Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const Index = () => {
-  const { user, isLoading } = useAuth()
+  const { user, role, isLoading } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      navigate(role === 'admin' ? '/business/dashboard' : '/concierge/dashboard', { replace: true })
+    }
+  }, [user, role, isLoading, navigate])
 
   if (isLoading) {
     return (
