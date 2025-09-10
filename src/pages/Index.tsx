@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export function Index() {
+function Index() {
   const { user, role, isLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -45,3 +45,5 @@ export function Index() {
     </div>
   )
 }
+
+export default Index
