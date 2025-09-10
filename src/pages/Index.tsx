@@ -28,15 +28,15 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50">
       <div className="max-w-2xl text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Bookly</h1>
+        <h1 className="text-4xl font-bold mb-4">Bookly</h1>
         <p className="text-lg text-gray-600 mb-8">
-          #1 Reservation App for Increasing Restaurant Reservations and Tour Operator Bookings!
+          #1 Booking App for Restaurants and Tour Operators to Increase Bookings
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild>
-            <Link to="/login">Login</Link>
+          <Button asChild variant="outline">
+            <Link to="/login">Sign In</Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button asChild>
             <Link to="/signup">Sign Up</Link>
           </Button>
         </div>
