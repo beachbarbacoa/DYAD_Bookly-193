@@ -12,11 +12,12 @@ const Index = () => {
 
   useEffect(() => {
     if (user && !isLoading) {
-      navigate(role === 'admin' ? '/business/dashboard' : '/concierge/dashboard', { replace: true })
+      const targetPath = role === 'admin' ? '/business/dashboard' : '/concierge/dashboard'
+      navigate(targetPath, { replace: true })
     }
   }, [user, role, isLoading, navigate])
 
-  if (isLoading) {
+  if (isLoading || user) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />

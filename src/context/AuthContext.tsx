@@ -51,17 +51,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading: false
       });
       
-      // Redirect based on role and previous location
-      const from = location.state?.from?.pathname || 
-                   (role === 'admin' ? '/business/dashboard' : '/concierge/dashboard');
-      navigate(from, { replace: true });
+      // Only redirect if we're not already on the correct dashboard
+      const currentPath = location.pathname;
+      const targetPath = role === 'admin' ? '/business/dashboard' : '/concierge/dashboard';
+      
+      if (!currentPath.startsWith(targetPath)) {
+        navigate(targetPath, { replace: true });
+      }
     } else {
       setState({
         user: null,
         role: null,
         isLoading: false
       });
-      navigate('/login');
+      if (!location.pathname.startsWith('/login')) {
+        navigate('/login', { replace: true });
+      }
     }
   }, [checkUserRole, navigate, location]);
 
