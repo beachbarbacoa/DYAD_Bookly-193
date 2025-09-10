@@ -4,12 +4,20 @@ import { Button } from "@/components/ui/button"
 import { CopyIcon, Share2Icon } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 export const AffiliateTools = () => {
   const { user } = useAuth()
   const affiliateLink = `${window.location.origin}/reserve?affiliate=${user?.id}`
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['affiliateStats', user?.id],
     queryFn: async () => {
       const { count: bookings } = await supabase
@@ -30,9 +38,34 @@ export const AffiliateTools = () => {
     }
   })
 
+  const { data: referrals, isLoading: referralsLoading } = useQuery({
+    queryKey: ['affiliateReferrals', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select(`
+          id,
+          name,
+          email,
+          date,
+          diners,
+          status,
+          business:business_id(name),
+          commission:commission_transactions(calculated_amount, is_paid)
+        `)
+        .eq('concierge_id', user?.id)
+        .order('date', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      return data
+    }
+  })
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
+        {/* Stats Card */}
         <div className="border p-4 rounded-lg">
           <h3 className="font-medium mb-4">Your Affiliate Link</h3>
           <QRCodeSVG value={affiliateLink} size={160} className="mx-auto mb-4" />
@@ -51,6 +84,7 @@ export const AffiliateTools = () => {
           </Button>
         </div>
 
+        {/* Stats Card */}
         <div className="border p-4 rounded-lg">
           <h3 className="font-medium mb-4">Quick Stats</h3>
           <div className="space-y-3">
@@ -64,6 +98,39 @@ export const AffiliateTools = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Recent Referrals Table */}
+      <div className="border rounded-lg">
+        <h3 className="font-medium p-4 border-b">Recent Referrals</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Business</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Guests</TableHead>
+              <TableHead>Commission</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {referrals?.map((referral) => (
+              <TableRow key={referral.id}>
+                <TableCell>{referral.name || referral.email}</TableCell>
+                <TableCell>{referral.business?.name || '-'}</TableCell>
+                <TableCell>{new Date(referral.date).toLocaleDateString()}</TableCell>
+                <TableCell>{referral.diners}</TableCell>
+                <TableCell>
+                  ${referral.commission?.[0]?.calculated_amount?.toFixed(2) || '0.00'}
+                </TableCell>
+                <TableCell>
+                  {referral.commission?.[0]?.is_paid ? 'Paid' : 'Pending'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   )
