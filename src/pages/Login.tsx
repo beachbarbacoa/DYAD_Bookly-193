@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { showError } from '@/utils/toast';
 
 export function Login() {
   const [email, setEmail] = useState('concierge@test.com');
@@ -18,11 +19,12 @@ export function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       await signIn(email, password);
-      // AuthContext will handle the redirect after successful login
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (error) {
+      showError(error instanceof Error ? error.message : 'Login failed');
       setLoading(false);
     }
   };

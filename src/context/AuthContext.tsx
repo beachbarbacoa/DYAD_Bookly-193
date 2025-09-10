@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { showError, showSuccess } from '@/utils/toast';
 
@@ -8,6 +8,7 @@ interface AuthState {
   user: User | null;
   role: string | null;
   isLoading: boolean;
+  session: Session | null;
 }
 
 interface AuthActions {
@@ -21,7 +22,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     role: null,
-    isLoading: true
+    isLoading: true,
+    session: null
   });
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,38 +35,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('business_role')
         .eq('id', userId)
         .single();
-
-      if (error) throw error;
-      return data?.business_role || 'concierge';
-    } catch (error) {
-      console.error('Role check error:', error);
+      return error ? 'concierge' : data?.business_role || 'concierge';
+    } catch {
       return 'concierge';
     }
   }, []);
 
-  const handleAuthChange = useCallback(async (event: string, session: { user: User } | null) => {
+  const handleAuthChange = useCallback(async (event: string, session: Session | null) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
     if (session?.user) {
       const role = await checkUserRole(session.user.id);
       setState({
         user: session.user,
         role,
-        isLoading: false
+        isLoading: false,
+        session
       });
       
-      // Only redirect if we're not already on the correct dashboard
-      const currentPath = location.pathname;
       const targetPath = role === 'admin' ? '/business/dashboard' : '/concierge/dashboard';
-      
-      if (!currentPath.startsWith(targetPath)) {
+      if (!location.pathname.startsWith(targetPath)) {
         navigate(targetPath, { replace: true });
       }
     } else {
       setState({
         user: null,
         role: null,
-        isLoading: false
+        isLoading: false,
+        session: null
       });
-      if (!location.pathname.startsWith('/login')) {
+      if (!['/login', '/signup'].includes(location.pathname)) {
         navigate('/login', { replace: true });
       }
     }
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      if (session) {
         await handleAuthChange('SIGNED_IN', session);
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
@@ -83,33 +83,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-
     return () => subscription.unsubscribe();
   }, [handleAuthChange]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    setState(prev => ({ ...prev, isLoading: true }));
     try {
+      setState(prev => ({ ...prev, isLoading: true }));
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      showSuccess('Logged in successfully!');
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Login failed');
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
   }, []);
 
   const signOut = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true }));
     try {
+      setState(prev => ({ ...prev, isLoading: true }));
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      showSuccess('Logged out successfully!');
       navigate('/login');
     } catch (error) {
-      showError('Failed to log out');
       setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
     }
   }, [navigate]);
 
@@ -122,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
