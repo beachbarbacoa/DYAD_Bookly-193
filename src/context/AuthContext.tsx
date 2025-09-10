@@ -61,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: null,
         isLoading: false
       });
+      navigate('/login');
     }
   }, [checkUserRole, navigate, location]);
 
@@ -95,8 +96,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
+    setState(prev => ({ ...prev, isLoading: true }));
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      showSuccess('Logged out successfully!');
+      navigate('/login');
+    } catch (error) {
+      showError('Failed to log out');
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
   }, [navigate]);
 
   return (
