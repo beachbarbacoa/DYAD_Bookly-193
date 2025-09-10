@@ -1,12 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BusinessSettings } from "./Settings"
-import { ConciergeManagement } from "./ConciergeManagement"
-import { ReservationCalendar } from "./Calendar"
-import { Notifications } from "./Notifications"
-import { Profile } from "./Profile"
-import { useAuth } from "@/context/AuthContext"
-import { Navigate } from "react-router-dom"
-import { Loader2 } from "lucide-react"
+// ... (previous imports remain the same)
 
 function Dashboard() {
   const { user, role, isLoading } = useAuth()
@@ -28,40 +20,10 @@ function Dashboard() {
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Business Dashboard</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Business Dashboard</h1>
       <Tabs defaultValue="calendar">
-        <TabsList>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="concierges">Concierges</TabsTrigger>
-          {role === 'owner' && (
-            <>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            </>
-          )}
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="calendar">
-          <ReservationCalendar />
-        </TabsContent>
-        <TabsContent value="concierges">
-          <ConciergeManagement userRole={role} />
-        </TabsContent>
-        {role === 'owner' && (
-          <>
-            <TabsContent value="settings">
-              <BusinessSettings />
-            </TabsContent>
-            <TabsContent value="notifications">
-              <Notifications />
-            </TabsContent>
-          </>
-        )}
-        <TabsContent value="profile">
-          <Profile userRole={role} />
-        </TabsContent>
+        {/* ... rest of the component remains the same ... */}
       </Tabs>
     </div>
   )

@@ -10,21 +10,25 @@ import ReservationPage from '@/pages/reserve/[businessId]';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryClientProvider } from '@/lib/react-query';
 import { queryClient } from '@/lib/react-query';
+import { AppHeader } from '@/components/AppHeader';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/business/dashboard" element={<BusinessDashboard />} />
-            <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
-            <Route path="/reserve/:businessId" element={<ReservationPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppHeader />
+          <main className="container py-8">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/business/dashboard" element={<BusinessDashboard />} />
+              <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
+              <Route path="/reserve/:businessId" element={<ReservationPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
           <Toaster position="top-center" />
         </AuthProvider>
       </BrowserRouter>
