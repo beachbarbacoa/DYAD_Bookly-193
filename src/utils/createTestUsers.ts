@@ -15,13 +15,16 @@ export async function createTestUser(email: string, password: string, role: 'bus
       return;
     }
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Create auth user using the signUp method
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: {
-        role
+      options: {
+        data: {
+          first_name: role === 'concierge' ? 'Test' : 'Business',
+          last_name: role === 'concierge' ? 'Concierge' : 'Owner',
+          role
+        }
       }
     });
 
@@ -31,7 +34,7 @@ export async function createTestUser(email: string, password: string, role: 'bus
     const { error: profileError } = await supabase
       .from('user_profiles')
       .insert({
-        id: authData.user.id,
+        id: authData.user?.id,
         email,
         first_name: role === 'concierge' ? 'Test' : 'Business',
         last_name: role === 'concierge' ? 'Concierge' : 'Owner',
@@ -42,7 +45,7 @@ export async function createTestUser(email: string, password: string, role: 'bus
 
     showSuccess(`Created ${role} user: ${email}`);
   } catch (error) {
-    showError(`Failed to create ${role} user: ${error.message}`);
+    showError(`Failed to create ${role} user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     console.error('Create user error:', error);
   }
 }
