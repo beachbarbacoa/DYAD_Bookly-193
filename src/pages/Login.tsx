@@ -37,8 +37,6 @@ export function Login() {
           <p className="text-lg text-gray-600 mb-6">
             #1 Booking App for Restaurants and Tour Operators
           </p>
-          <h2 className="text-2xl font-semibold">Sign In</h2>
-          <p className="text-muted-foreground mt-2">Enter your credentials</p>
         </div>
         
         <form className="space-y-6" onSubmit={handleLogin}>
