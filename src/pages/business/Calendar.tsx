@@ -1,9 +1,9 @@
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
 
-export const ReservationCalendar = () => {
+export const Calendar = () => {
   const [date, setDate] = useState<Date | undefined>(new Date())
   
   const { data: reservations, isLoading } = useQuery({
@@ -19,7 +19,7 @@ export const ReservationCalendar = () => {
 
   return (
     <div className="space-y-4">
-      <Calendar
+      <CalendarComponent
         mode="single"
         selected={date}
         onSelect={setDate}
