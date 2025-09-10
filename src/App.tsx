@@ -8,23 +8,27 @@ import BusinessDashboard from '@/pages/business/Dashboard';
 import ConciergeDashboard from '@/pages/concierge/Dashboard';
 import ReservationPage from '@/pages/reserve/[businessId]';
 import { Toaster } from '@/components/ui/sonner';
+import { QueryClientProvider } from '@/lib/react-query';
+import { queryClient } from '@/lib/react-query';
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/business/dashboard" element={<BusinessDashboard />} />
-          <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
-          <Route path="/reserve/:businessId" element={<ReservationPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster position="top-center" />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/business/dashboard" element={<BusinessDashboard />} />
+            <Route path="/concierge/dashboard" element={<ConciergeDashboard />} />
+            <Route path="/reserve/:businessId" element={<ReservationPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster position="top-center" />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
