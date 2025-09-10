@@ -1,4 +1,12 @@
-// ... (previous imports remain the same)
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar } from './Calendar'
+import { ConciergeManagement } from './ConciergeManagement'
+import { Notifications } from './Notifications'
+import { Profile } from './Profile'
+import { Settings } from './Settings'
+import { useAuth } from '@/context/AuthContext'
+import { Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 
 function Dashboard() {
   const { user, role, isLoading } = useAuth()
@@ -23,7 +31,28 @@ function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Business Dashboard</h1>
       <Tabs defaultValue="calendar">
-        {/* ... rest of the component remains the same ... */}
+        <TabsList>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="concierges">Concierges</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+        <TabsContent value="calendar">
+          <Calendar />
+        </TabsContent>
+        <TabsContent value="concierges">
+          <ConciergeManagement userRole={role} />
+        </TabsContent>
+        <TabsContent value="notifications">
+          <Notifications />
+        </TabsContent>
+        <TabsContent value="profile">
+          <Profile userRole={role} />
+        </TabsContent>
+        <TabsContent value="settings">
+          <Settings />
+        </TabsContent>
       </Tabs>
     </div>
   )
