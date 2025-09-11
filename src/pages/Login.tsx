@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { showError } from '@/utils/toast';
 
-export function Login() {
+export default function Login() {  // Changed to default export
   const [email, setEmail] = useState('concierge@test.com');
   const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
