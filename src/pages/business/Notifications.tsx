@@ -19,18 +19,17 @@ export const Notifications = () => {
     queryKey: ['notificationConfig'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('business_telegram_configs')
-        .select('*')
-        .eq('business_id', 'current_business_id') // Replace with actual business ID
+        .from('user_profiles')
+        .select('notification_preferences')
+        .eq('id', 'current_user_id') // Will be replaced with actual user ID
         .single()
-      return data
+      return data?.notification_preferences
     },
     onSuccess: (data) => {
       if (data) {
         setNotificationPrefs(prev => ({
           ...prev,
-          telegram: data.is_active,
-          ...data.notification_types
+          ...data
         }))
       }
     }
@@ -39,17 +38,18 @@ export const Notifications = () => {
   const { mutate: updateNotifications } = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from('business_telegram_configs')
-        .upsert({
-          business_id: 'current_business_id',
-          is_active: notificationPrefs.telegram,
-          notification_types: {
+        .from('user_profiles')
+        .update({
+          notification_preferences: {
+            email: notificationPrefs.email,
+            telegram: notificationPrefs.telegram,
             newReservation: notificationPrefs.newReservation,
             cancellation: notificationPrefs.cancellation,
             modification: notificationPrefs.modification
           }
         })
-        .eq('business_id', 'current_business_id')
+        .eq('id', 'current_user_id')
+      
       if (error) throw error
     },
     onSuccess: () => showSuccess('Notification settings updated'),
@@ -87,7 +87,7 @@ export const Notifications = () => {
           />
         </div>
 
-        {notificationPrefs.telegram && (
+        {(notificationPrefs.email || notificationPrefs.telegram) && (
           <div className="space-y-4 pl-8">
             <div className="flex items-center justify-between">
               <Label>New Reservations</Label>
