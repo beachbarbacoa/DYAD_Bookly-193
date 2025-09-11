@@ -23,36 +23,42 @@ export function SignUp() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // First create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            company_name: formData.companyName,
             role: formData.role
           }
         }
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
       
-      if (data.user) {
-        await supabase.from('user_profiles').insert({
-          id: data.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          business_role: formData.role === 'business' ? 'owner' : null,
-          company_name: formData.companyName
-        });
+      if (authData.user) {
+        // Then create profile in public.user_profiles
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            business_role: formData.role === 'business' ? 'admin' : null,
+            company_name: formData.companyName
+          });
+
+        if (profileError) throw profileError;
 
         showSuccess('Sign up successful! Please check your email to confirm your account.');
         navigate('/login');
       }
     } catch (error) {
       showError(error.message || 'Failed to sign up');
+      console.error('Signup error:', error);
     } finally {
       setLoading(false);
     }
