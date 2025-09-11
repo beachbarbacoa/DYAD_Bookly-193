@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { showError, showSuccess } from '@/utils/toast';
-import { startSessionHeartbeat } from '@/utils/sessionHeartbeat';
 
 interface AuthState {
   user: User | null;
@@ -26,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading: true,
     session: null
   });
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -117,7 +117,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Make sure this export is present and properly typed
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

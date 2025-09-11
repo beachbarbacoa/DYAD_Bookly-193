@@ -1,18 +1,18 @@
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
-import { LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const AppHeader = () => {
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
-  }
+    await signOut();
+    navigate('/login');
+  };
 
-  if (!user) return null
+  if (!user) return null;
 
   return (
     <header className="w-full border-b">
@@ -28,5 +28,5 @@ export const AppHeader = () => {
         </Button>
       </div>
     </header>
-  )
-}
+  );
+};
