@@ -14,7 +14,7 @@ export function SignUp() {
     firstName: '',
     lastName: '',
     companyName: '',
-    role: 'concierge'
+    role: 'concierge' // 'concierge' or 'business'
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export function SignUp() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Create auth user
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -30,7 +31,6 @@ export function SignUp() {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            company_name: formData.companyName,
             role: formData.role
           }
         }
@@ -39,20 +39,40 @@ export function SignUp() {
       if (error) throw error;
       
       if (data.user) {
-        await supabase.from('user_profiles').insert({
-          id: data.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          business_role: formData.role === 'business' ? 'owner' : null,
-          company_name: formData.companyName
-        });
+        // Create user profile
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: data.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            business_role: formData.role === 'business' ? 'admin' : null,
+            company_name: formData.role === 'business' ? formData.companyName : null
+          });
 
-        showSuccess('Sign up successful! Please check your email to confirm your account.');
-        navigate('/login');
+        if (profileError) throw profileError;
+
+        // For business users, create a business record
+        if (formData.role === 'business') {
+          const { error: businessError } = await supabase
+            .from('businesses')
+            .insert({
+              id: data.user.id,
+              name: formData.companyName,
+              email: formData.email,
+              is_active: true,
+              is_listed: true
+            });
+
+          if (businessError) throw businessError;
+        }
+
+        showSuccess('Account created successfully! Redirecting...');
+        setTimeout(() => navigate('/login'), 2000);
       }
     } catch (error) {
-      showError(error.message || 'Failed to sign up');
+      showError(error instanceof Error ? error.message : 'Failed to sign up');
     } finally {
       setLoading(false);
     }
@@ -72,7 +92,6 @@ export function SignUp() {
                 required
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                placeholder="First name"
               />
             </div>
             <div>
@@ -83,22 +102,22 @@ export function SignUp() {
                 required
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                placeholder="Last name"
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="companyName">Company Name</Label>
-            <Input
-              id="companyName"
-              type="text"
-              required
-              value={formData.companyName}
-              onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-              placeholder="Your company name"
-            />
-          </div>
+          {formData.role === 'business' && (
+            <div>
+              <Label htmlFor="companyName">Business Name</Label>
+              <Input
+                id="companyName"
+                type="text"
+                required={formData.role === 'business'}
+                value={formData.companyName}
+                onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+              />
+            </div>
+          )}
 
           <div>
             <Label htmlFor="email">Email</Label>
@@ -108,7 +127,6 @@ export function SignUp() {
               required
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="your@email.com"
             />
           </div>
 
@@ -121,17 +139,17 @@ export function SignUp() {
               minLength={6}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              placeholder="At least 6 characters"
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label>Account Type</Label>
-            <div className="flex space-x-4 mt-2">
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant={formData.role === 'concierge' ? 'default' : 'outline'}
                 onClick={() => setFormData({...formData, role: 'concierge'})}
+                className="flex-1"
               >
                 Concierge
               </Button>
@@ -139,6 +157,7 @@ export function SignUp() {
                 type="button"
                 variant={formData.role === 'business' ? 'default' : 'outline'}
                 onClick={() => setFormData({...formData, role: 'business'})}
+                className="flex-1"
               >
                 Business
               </Button>
