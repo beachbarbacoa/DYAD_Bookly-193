@@ -10,7 +10,7 @@ import { showSuccess, showError } from '@/utils/toast'
 export const Settings = () => {
   const { user } = useAuth()
   
-  const { data: business, isLoading } = useQuery({
+  const { data: business, isLoading, refetch } = useQuery({
     queryKey: ['businessSettings'],
     queryFn: async () => {
       const { data } = await supabase
@@ -30,7 +30,10 @@ export const Settings = () => {
         .eq('id', user?.id)
       if (error) throw error
     },
-    onSuccess: () => showSuccess('Marketplace preference updated'),
+    onSuccess: () => {
+      refetch() // This will refresh the query and update the UI
+      showSuccess('Marketplace preference updated')
+    },
     onError: () => showError('Failed to update marketplace preference')
   })
 
