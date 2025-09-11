@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'  // Add this import
+import { Button } from '@/components/ui/button'
 import { MadeWithDyad } from '@/components/made-with-dyad'
 import { useAuth } from '@/context/AuthContext'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export function Index() {
+function Index() {
   const { user, role, isLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -45,3 +45,5 @@ export function Index() {
     </div>
   )
 }
+
+export default Index
