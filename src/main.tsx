@@ -1,17 +1,10 @@
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
 
 const root = createRoot(document.getElementById('root')!);
 root.render(
-  <div style={{
-    width: '100vw',
-    height: '100vh',
-    backgroundColor: 'red',
-    color: 'white',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontSize: '24px'
-  }}>
-    BASIC RENDER TEST
-  </div>
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
 );
