@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
-import { Login } from '@/pages/Login' // This should match the export
-import { SignUp } from '@/pages/SignUp'
+import { Login } from '@/pages/Login'
+import { SignUp } from '@/pages/SignUp'  // This now matches the named export
 import { Index } from '@/pages/Index'
 import { NotFound } from '@/pages/NotFound'
 
