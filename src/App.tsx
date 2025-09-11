@@ -1,10 +1,10 @@
-import { Routes, Route } from 'react-router-dom';
-import { RootErrorBoundary } from '@/components/RootErrorBoundary';
-import { AuthErrorBoundary } from '@/components/AuthErrorBoundary';
-import { Index } from '@/pages/Index';
-import { Login } from '@/pages/Login';
-import { SignUp } from '@/pages/SignUp';
-import { NotFound } from '@/pages/NotFound'; // Now importing named export
+import { Routes, Route } from 'react-router-dom'
+import { RootErrorBoundary } from '@/components/RootErrorBoundary'
+import { AuthErrorBoundary } from '@/components/AuthErrorBoundary'
+import { Index } from '@/pages/Index'
+import { Login } from '@/pages/Login'
+import { SignUp } from '@/pages/SignUp'
+import { NotFound } from '@/pages/NotFound'
 
 function App() {
   return (
@@ -18,7 +18,7 @@ function App() {
         </Routes>
       </AuthErrorBoundary>
     </RootErrorBoundary>
-  );
+  )
 }
 
-export default App;
+export default App
