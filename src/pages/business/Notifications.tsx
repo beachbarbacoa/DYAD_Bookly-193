@@ -1,13 +1,11 @@
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { useState, useEffect } from "react"
 import { showSuccess, showError } from "@/utils/toast"
 import { useAuth } from "@/context/AuthContext"
 
-// Type for our notification preferences
 type NotificationPreferences = {
   email: boolean
   telegram: boolean
@@ -16,9 +14,8 @@ type NotificationPreferences = {
   modification: boolean
 }
 
-// Default preferences if none exist
 const DEFAULT_PREFS: NotificationPreferences = {
-  email: true,
+  email: true,  // Default to ON
   telegram: false,
   newReservation: true,
   cancellation: true,
@@ -29,7 +26,6 @@ export const Notifications = () => {
   const { user } = useAuth()
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS)
 
-  // Fetch current preferences
   const { data: config, isLoading } = useQuery({
     queryKey: ['notificationConfig', user?.id],
     queryFn: async () => {
@@ -46,7 +42,6 @@ export const Notifications = () => {
         return DEFAULT_PREFS
       }
 
-      // Merge with defaults to ensure all fields exist
       return { ...DEFAULT_PREFS, ...(data?.notification_preferences || {}) }
     },
     onSuccess: (data) => {
@@ -54,7 +49,6 @@ export const Notifications = () => {
     }
   })
 
-  // Update preferences in database
   const { mutate: updateNotifications } = useMutation({
     mutationFn: async (newPrefs: NotificationPreferences) => {
       if (!user?.id) throw new Error('No user ID')
@@ -74,7 +68,6 @@ export const Notifications = () => {
     onError: (error) => {
       showError('Failed to update notifications')
       console.error('Update error:', error)
-      // Revert to previous state on error
       if (config) setNotificationPrefs(config)
     }
   })
@@ -118,30 +111,32 @@ export const Notifications = () => {
           />
         </div>
 
-        <div className="space-y-4 pl-4 border-l-2">
-          <h3 className="font-medium">Notification Types</h3>
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <Label>New Reservations</Label>
-            <Switch 
-              checked={notificationPrefs.newReservation}
-              onCheckedChange={(val) => handleToggle('newReservation', val)}
-            />
+        {(notificationPrefs.email || notificationPrefs.telegram) && (
+          <div className="space-y-4 pl-4 border-l-2">
+            <h3 className="font-medium">Notification Types</h3>
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <Label>New Reservations</Label>
+              <Switch 
+                checked={notificationPrefs.newReservation}
+                onCheckedChange={(val) => handleToggle('newReservation', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <Label>Reservation Cancellations</Label>
+              <Switch 
+                checked={notificationPrefs.cancellation}
+                onCheckedChange={(val) => handleToggle('cancellation', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <Label>Reservation Modifications</Label>
+              <Switch 
+                checked={notificationPrefs.modification}
+                onCheckedChange={(val) => handleToggle('modification', val)}
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <Label>Reservation Cancellations</Label>
-            <Switch 
-              checked={notificationPrefs.cancellation}
-              onCheckedChange={(val) => handleToggle('cancellation', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <Label>Reservation Modifications</Label>
-            <Switch 
-              checked={notificationPrefs.modification}
-              onCheckedChange={(val) => handleToggle('modification', val)}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
