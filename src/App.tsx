@@ -1,24 +1,48 @@
-// ... existing imports
+import { Routes, Route } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import { AppHeader } from "@/components/AppHeader";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
+import BusinessDashboard from "@/pages/business/Dashboard";
+import ConciergeDashboard from "@/pages/concierge/Dashboard";
+import NotFound from "@/pages/NotFound";
 import { AffiliateLink } from "@/pages/concierge/AffiliateLink";
 
-function AuthWrapper() {
+function App() {
   return (
-    <>
-      <AppHeader />
-      <main className="container py-8">
-        <Routes>
-          {/* ... existing routes */}
-          <Route 
-            path="/concierge/business/:businessId" 
-            element={
-              <ProtectedRoute requiredRole="concierge">
-                <AffiliateLink />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-      </main>
-      <Toaster position="top-center" />
-    </>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route
+        path="/business/dashboard"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <BusinessDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/concierge/dashboard"
+        element={
+          <ProtectedRoute requiredRole="concierge">
+            <ConciergeDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/concierge/business/:businessId"
+        element={
+          <ProtectedRoute requiredRole="concierge">
+            <AffiliateLink />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
+
+export default App;
