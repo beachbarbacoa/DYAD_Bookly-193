@@ -4,7 +4,7 @@ import { AuthErrorBoundary } from '@/components/AuthErrorBoundary';
 import { Index } from '@/pages/Index';
 import { Login } from '@/pages/Login';
 import { SignUp } from '@/pages/SignUp';
-import { NotFound } from '@/pages/NotFound';
+import { NotFound } from '@/pages/NotFound'; // This one was already a default export
 
 function App() {
   return (
