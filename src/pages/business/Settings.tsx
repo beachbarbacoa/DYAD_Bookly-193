@@ -6,11 +6,13 @@ import { Label } from '@/components/ui/label'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { showSuccess, showError } from '@/utils/toast'
+import { useState, useEffect } from 'react'
 
 export const Settings = () => {
   const { user } = useAuth()
+  const [isListed, setIsListed] = useState(true) // Local state for immediate feedback
   
-  const { data: business, isLoading, refetch } = useQuery({
+  const { data: business, isLoading } = useQuery({
     queryKey: ['businessSettings'],
     queryFn: async () => {
       const { data } = await supabase
@@ -19,22 +21,33 @@ export const Settings = () => {
         .eq('id', user?.id)
         .single()
       return data
+    },
+    onSuccess: (data) => {
+      if (data?.is_listed !== undefined) {
+        setIsListed(data.is_listed)
+      }
     }
   })
 
   const { mutate: updateListing } = useMutation({
-    mutationFn: async (isListed: boolean) => {
+    mutationFn: async (newValue: boolean) => {
       const { error } = await supabase
         .from('businesses')
-        .update({ is_listed: isListed })
+        .update({ is_listed: newValue })
         .eq('id', user?.id)
       if (error) throw error
+      return newValue
+    },
+    onMutate: (newValue) => {
+      setIsListed(newValue) // Optimistic update
     },
     onSuccess: () => {
-      refetch() // This will refresh the query and update the UI
       showSuccess('Marketplace preference updated')
     },
-    onError: () => showError('Failed to update marketplace preference')
+    onError: (error, variables, context) => {
+      setIsListed(!variables) // Revert on error
+      showError('Failed to update marketplace preference')
+    }
   })
 
   return (
@@ -49,16 +62,16 @@ export const Settings = () => {
           <div className="flex items-center space-x-2">
             <Switch
               id="marketplace-listing"
-              checked={business?.is_listed ?? true}
+              checked={isListed}
               onCheckedChange={(checked) => updateListing(checked)}
               disabled={isLoading}
             />
             <Label htmlFor="marketplace-listing">
-              {business?.is_listed ? 'Listed in Marketplace' : 'Hidden from Marketplace'}
+              {isListed ? 'Listed in Marketplace' : 'Hidden from Marketplace'}
             </Label>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            {business?.is_listed 
+            {isListed 
               ? 'Your business is visible to concierges in the marketplace'
               : 'Your business will not appear in the concierge marketplace'}
           </p>
