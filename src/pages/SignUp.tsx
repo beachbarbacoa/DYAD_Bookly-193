@@ -7,7 +7,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-export function SignUp() {
+export default function SignUp() {  // Changed to default export
   const [formData, setFormData] = useState({
     email: '',
     password: '',
