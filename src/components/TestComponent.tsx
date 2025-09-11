@@ -1,17 +1,17 @@
 export const TestComponent = () => {
   return (
     <div style={{
-      width: '100vw',
+      width: '100%',
       height: '100vh',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: '#f0f0f0',
-      color: '#333',
-      fontSize: '24px',
+      backgroundColor: 'red', // Highly visible color
+      color: 'white',
+      fontSize: '32px',
       fontWeight: 'bold'
     }}>
-      Basic Component Rendered Successfully
+      TEST COMPONENT RENDERED
     </div>
   );
 };
