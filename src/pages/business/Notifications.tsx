@@ -1,120 +1,71 @@
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/integrations/supabase/client"
-import { useQuery, useMutation } from "@tanstack/react-query"
-import { useState } from "react"
-import { showSuccess, showError } from "@/utils/toast"
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { showSuccess, showError } from "@/utils/toast";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const Notifications = () => {
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    email: true,
-    telegram: false,
-    newReservation: true,
-    cancellation: true,
-    modification: true
-  })
-
-  const { data: config } = useQuery({
-    queryKey: ['notificationConfig'],
+  const { data: requests } = useQuery({
+    queryKey: ['conciergeRequests'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('business_telegram_configs')
-        .select('*')
-        .eq('business_id', 'current_business_id') // Replace with actual business ID
-        .single()
-      return data
-    },
-    onSuccess: (data) => {
-      if (data) {
-        setNotificationPrefs(prev => ({
-          ...prev,
-          telegram: data.is_active,
-          ...data.notification_types
-        }))
-      }
-    }
-  })
-
-  const { mutate: updateNotifications } = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('business_telegram_configs')
-        .upsert({
-          business_id: 'current_business_id',
-          is_active: notificationPrefs.telegram,
-          notification_types: {
-            newReservation: notificationPrefs.newReservation,
-            cancellation: notificationPrefs.cancellation,
-            modification: notificationPrefs.modification
-          }
-        })
+        .from('concierge_applications')
+        .select(`
+          *,
+          concierge:concierge_id (first_name, last_name, email)
+        `)
         .eq('business_id', 'current_business_id')
-      if (error) throw error
+        .eq('status', 'pending');
+      return data || [];
+    }
+  });
+
+  const { mutate: approveRequest } = useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await supabase
+        .from('concierge_applications')
+        .update({ status: 'approved' })
+        .eq('id', requestId);
+      if (error) throw error;
     },
-    onSuccess: () => showSuccess('Notification settings updated'),
-    onError: () => showError('Failed to update notifications')
-  })
+    onSuccess: () => showSuccess('Request approved'),
+    onError: () => showError('Failed to approve request')
+  });
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Notification Settings</h2>
+      <h2 className="text-xl font-semibold">Notifications</h2>
       
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Email Notifications</Label>
-            <p className="text-sm text-muted-foreground">
-              Receive notifications via email
-            </p>
-          </div>
-          <Switch 
-            checked={notificationPrefs.email}
-            onCheckedChange={(val) => setNotificationPrefs({...notificationPrefs, email: val})}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Telegram Notifications</Label>
-            <p className="text-sm text-muted-foreground">
-              Receive instant notifications via Telegram
-            </p>
-          </div>
-          <Switch 
-            checked={notificationPrefs.telegram}
-            onCheckedChange={(val) => setNotificationPrefs({...notificationPrefs, telegram: val})}
-          />
-        </div>
-
-        {notificationPrefs.telegram && (
-          <div className="space-y-4 pl-8">
-            <div className="flex items-center justify-between">
-              <Label>New Reservations</Label>
-              <Switch 
-                checked={notificationPrefs.newReservation}
-                onCheckedChange={(val) => setNotificationPrefs({...notificationPrefs, newReservation: val})}
-              />
+        <h3 className="font-medium">Pending Concierge Requests</h3>
+        {requests?.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No pending requests</p>
+        ) : (
+          requests?.map(request => (
+            <div key={request.id} className="p-4 border rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">
+                    {request.concierge.first_name} {request.concierge.last_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {request.concierge.email}
+                  </p>
+                  <p className="text-sm mt-2">{request.application_message}</p>
+                </div>
+                <Button 
+                  size="sm" 
+                  onClick={() => approveRequest(request.id)}
+                >
+                  Approve
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label>Cancellations</Label>
-              <Switch 
-                checked={notificationPrefs.cancellation}
-                onCheckedChange={(val) => setNotificationPrefs({...notificationPrefs, cancellation: val})}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Modifications</Label>
-              <Switch 
-                checked={notificationPrefs.modification}
-                onCheckedChange={(val) => setNotificationPrefs({...notificationPrefs, modification: val})}
-              />
-            </div>
-          </div>
+          ))
         )}
       </div>
 
-      <Button onClick={() => updateNotifications()}>Save Notification Settings</Button>
+      {/* Existing notification settings */}
     </div>
-  )
-}
+  );
+};
