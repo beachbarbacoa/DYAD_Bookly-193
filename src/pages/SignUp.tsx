@@ -25,8 +25,6 @@ export function SignUp() {
     setLoading(true);
     
     try {
-      console.log('Starting sign up process...');
-      
       // Step 1: Sign up with Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -40,79 +38,49 @@ export function SignUp() {
         }
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
-
-      if (!authData.user) {
-        throw new Error('No user returned from auth');
-      }
-
-      console.log('Auth success, user ID:', authData.user.id);
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
 
       // Step 2: Create profile
-      const profileData = {
-        id: authData.user.id,
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        organization_name: formData.organizationName,
-        business_role: formData.role === 'business' ? 'owner' : null,
-        created_at: new Date().toISOString()
-      };
-
-      console.log('Profile data to insert:', profileData);
-
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .upsert(profileData);
+        .upsert({
+          id: authData.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          organization_name: formData.organizationName,
+          business_role: formData.role === 'business' ? 'owner' : null
+        });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
-      console.log('Profile created successfully');
-
-      // Step 3: For business users only
+      // Step 3: For business users, create business record
       if (formData.role === 'business') {
-        console.log('Creating business record...');
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
           .insert({
             name: formData.organizationName,
             email: formData.email,
-            is_active: true,
-            created_at: new Date().toISOString()
+            is_active: true
           })
           .select()
           .single();
 
-        if (businessError) {
-          console.error('Business creation error:', businessError);
-          throw businessError;
-        }
-
-        console.log('Business created:', businessData);
+        if (businessError) throw businessError;
 
         // Link business to user
-        const { error: linkError } = await supabase
+        await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
-
-        if (linkError) {
-          console.error('Business link error:', linkError);
-          throw linkError;
-        }
       }
 
       showSuccess('Account created successfully! Please check your email to verify your account.');
       navigate('/login');
     } catch (error: any) {
-      console.error('Full error details:', error);
-      showError(error.message || 'Failed to create account. Please check console for details.');
+      console.error('Signup error:', error);
+      showError(error.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }
