@@ -10,49 +10,24 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function SignUp() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    organizationName: '',
+    email: 'test@example.com',
+    password: 'password123',
+    firstName: 'Test',
+    lastName: 'User',
+    organizationName: 'Test Org',
     role: 'concierge'
   });
   const [loading, setLoading] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
-
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!formData.email.trim()) errors.email = 'Email is required';
-    if (!formData.password) errors.password = 'Password is required';
-    if (formData.password.length < 6) errors.password = 'Password must be at least 6 characters';
-    if (!formData.firstName.trim()) errors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
-    if (!formData.organizationName.trim()) errors.organizationName = 'Organization name is required';
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-    
     setLoading(true);
     
     try {
-      // Check if email exists
-      const { data: existingUser } = await supabase
-        .from('user_profiles')
-        .select('email')
-        .eq('email', formData.email)
-        .maybeSingle();
-
-      if (existingUser) {
-        throw new Error('Email already in use');
-      }
-
-      // Create auth user
+      console.log('Starting sign up process...');
+      
+      // Step 1: Sign up with Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -65,26 +40,44 @@ export function SignUp() {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
 
-      // Create profile
+      if (!authData.user) {
+        throw new Error('No user returned from auth');
+      }
+
+      console.log('Auth success, user ID:', authData.user.id);
+
+      // Step 2: Create profile
+      const profileData = {
+        id: authData.user.id,
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        organization_name: formData.organizationName,
+        business_role: formData.role === 'business' ? 'owner' : null,
+        created_at: new Date().toISOString()
+      };
+
+      console.log('Profile data to insert:', profileData);
+
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .upsert({
-          id: authData.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          organization_name: formData.organizationName,
-          business_role: formData.role === 'business' ? 'owner' : null,
-          created_at: new Date().toISOString()
-        });
+        .upsert(profileData);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
 
-      // For business users, create business record
+      console.log('Profile created successfully');
+
+      // Step 3: For business users only
       if (formData.role === 'business') {
+        console.log('Creating business record...');
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
           .insert({
@@ -96,20 +89,30 @@ export function SignUp() {
           .select()
           .single();
 
-        if (businessError) throw businessError;
+        if (businessError) {
+          console.error('Business creation error:', businessError);
+          throw businessError;
+        }
+
+        console.log('Business created:', businessData);
 
         // Link business to user
-        await supabase
+        const { error: linkError } = await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
+
+        if (linkError) {
+          console.error('Business link error:', linkError);
+          throw linkError;
+        }
       }
 
       showSuccess('Account created successfully! Please check your email to verify your account.');
       navigate('/login');
     } catch (error: any) {
-      console.error('Signup error:', error);
-      showError(error.message || 'Failed to create account. Please try again.');
+      console.error('Full error details:', error);
+      showError(error.message || 'Failed to create account. Please check console for details.');
     } finally {
       setLoading(false);
     }
@@ -122,34 +125,28 @@ export function SignUp() {
         <form className="space-y-4" onSubmit={handleSignUp}>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="firstName">First Name *</Label>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
                 id="firstName"
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
               />
-              {formErrors.firstName && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.firstName}</p>
-              )}
             </div>
             <div>
-              <Label htmlFor="lastName">Last Name *</Label>
+              <Label htmlFor="lastName">Last Name</Label>
               <Input
                 id="lastName"
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
               />
-              {formErrors.lastName && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.lastName}</p>
-              )}
             </div>
           </div>
 
           <div>
             <Label htmlFor="organizationName">
-              {formData.role === 'business' ? 'Business Name *' : 'Organization Name *'}
+              {formData.role === 'business' ? 'Business Name' : 'Organization Name'}
             </Label>
             <Input
               id="organizationName"
@@ -157,39 +154,30 @@ export function SignUp() {
               value={formData.organizationName}
               onChange={(e) => setFormData({...formData, organizationName: e.target.value})}
             />
-            {formErrors.organizationName && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.organizationName}</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
-            {formErrors.email && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.email}</p>
-            )}
           </div>
 
           <div>
-            <Label htmlFor="password">Password *</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
-            {formErrors.password && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.password}</p>
-            )}
           </div>
 
           <div>
-            <Label>Account Type *</Label>
+            <Label>Account Type</Label>
             <div className="flex space-x-4 mt-2">
               <Button
                 type="button"
