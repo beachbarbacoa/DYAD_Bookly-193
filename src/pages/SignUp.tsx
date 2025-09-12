@@ -1,11 +1,12 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { showError, showSuccess } from "@/utils/toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { showError, showSuccess } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function SignUp() {
   const [formData, setFormData] = useState({
@@ -22,37 +23,44 @@ export function SignUp() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // First create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            company_name: formData.companyName,
             role: formData.role
           }
         }
       });
 
-      if (error) throw error;
-      
-      if (data.user) {
-        await supabase.from('user_profiles').insert({
-          id: data.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          business_role: formData.role === 'business' ? 'owner' : null,
-          company_name: formData.companyName
-        });
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Then create the profile in the public.users table
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            business_role: formData.role === 'business' ? 'owner' : null,
+            company_name: formData.companyName
+          });
+
+        if (profileError) throw profileError;
 
         showSuccess('Sign up successful! Please check your email to confirm your account.');
         navigate('/login');
       }
     } catch (error) {
-      showError(error.message || 'Failed to sign up');
+      console.error('Signup error:', error);
+      showError(error.message || 'Failed to sign up. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -72,7 +80,6 @@ export function SignUp() {
                 required
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                placeholder="First name"
               />
             </div>
             <div>
@@ -83,7 +90,6 @@ export function SignUp() {
                 required
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                placeholder="Last name"
               />
             </div>
           </div>
@@ -93,10 +99,8 @@ export function SignUp() {
             <Input
               id="companyName"
               type="text"
-              required
               value={formData.companyName}
               onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-              placeholder="Your company name"
             />
           </div>
 
@@ -108,7 +112,6 @@ export function SignUp() {
               required
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="your@email.com"
             />
           </div>
 
@@ -121,7 +124,6 @@ export function SignUp() {
               minLength={6}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              placeholder="At least 6 characters"
             />
           </div>
 
