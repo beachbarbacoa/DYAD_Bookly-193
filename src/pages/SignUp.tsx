@@ -14,7 +14,7 @@ export function SignUp() {
     password: '',
     firstName: '',
     lastName: '',
-    businessName: '',
+    organizationName: '', // Changed from businessName to be more generic
     role: 'concierge'
   });
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ export function SignUp() {
             first_name: formData.firstName,
             last_name: formData.lastName,
             role: formData.role,
-            business_name: formData.businessName
+            organization_name: formData.organizationName // Updated field name
           }
         }
       });
@@ -49,15 +49,21 @@ export function SignUp() {
           first_name: formData.firstName,
           last_name: formData.lastName,
           business_role: formData.role === 'business' ? 'owner' : null,
-          business_name: formData.businessName // Store for both account types
+          organization_name: formData.organizationName // Store for both account types
         };
+
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert(profileData);
+
+        if (profileError) throw profileError;
 
         // For business users, also create a business record
         if (formData.role === 'business') {
           const { data: businessData, error: businessError } = await supabase
             .from('businesses')
             .insert({
-              name: formData.businessName,
+              name: formData.organizationName,
               email: formData.email,
               is_active: true
             })
@@ -113,23 +119,25 @@ export function SignUp() {
           </div>
 
           <div>
-            <Label htmlFor="businessName">
-              {formData.role === 'business' ? 'Business Name' : 'Organization Name'}
+            <Label htmlFor="organizationName">
+              {formData.role === 'business' ? 'Business Name' : 'Organization Name'} *
             </Label>
             <Input
-              id="businessName"
+              id="organizationName"
               type="text"
               required
-              value={formData.businessName}
-              onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-              placeholder={formData.role === 'business' ? 
-                'Your business name' : 
-                'Your organization or company name (optional)'}
+              value={formData.organizationName}
+              onChange={(e) => setFormData({...formData, organizationName: e.target.value})}
+              placeholder={
+                formData.role === 'business' 
+                  ? 'Your business name (e.g. Restaurant XYZ)' 
+                  : 'Your organization name (e.g. Travel Agency ABC)'
+              }
             />
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
@@ -140,7 +148,7 @@ export function SignUp() {
           </div>
 
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Password *</Label>
             <Input
               id="password"
               type="password"
@@ -152,7 +160,7 @@ export function SignUp() {
           </div>
 
           <div>
-            <Label>Account Type</Label>
+            <Label>Account Type *</Label>
             <div className="flex space-x-4 mt-2">
               <Button
                 type="button"
