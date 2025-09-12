@@ -41,6 +41,17 @@ export function SignUp() {
     setLoading(true);
     
     try {
+      // First check if email already exists
+      const { data: existingUser } = await supabase
+        .from('user_profiles')
+        .select('email')
+        .eq('email', formData.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error('Email already in use');
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -59,27 +70,31 @@ export function SignUp() {
 
       if (authData.user) {
         // Create user profile
+        const profileData = {
+          id: authData.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          organization_name: formData.organizationName,
+          business_role: formData.role === 'business' ? 'owner' : null,
+          created_at: new Date().toISOString()
+        };
+
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .upsert({
-            id: authData.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            business_role: formData.role === 'business' ? 'owner' : null,
-            organization_name: formData.organizationName
-          });
+          .upsert(profileData);
 
         if (profileError) throw profileError;
 
-        // For business users, also create a business record
+        // For business users only - create business record
         if (formData.role === 'business') {
           const { data: businessData, error: businessError } = await supabase
             .from('businesses')
             .insert({
               name: formData.organizationName,
               email: formData.email,
-              is_active: true
+              is_active: true,
+              created_at: new Date().toISOString()
             })
             .select()
             .single();
@@ -93,10 +108,10 @@ export function SignUp() {
             .eq('id', authData.user.id);
         }
 
-        showSuccess('Account created successfully!');
+        showSuccess('Account created successfully! Please check your email to confirm your account.');
         navigate('/login');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
       showError(error.message || 'Failed to create account. Please try again.');
     } finally {
