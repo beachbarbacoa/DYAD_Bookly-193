@@ -14,6 +14,7 @@ export function SignUp() {
     password: '',
     firstName: '',
     lastName: '',
+    businessName: '',
     role: 'concierge'
   });
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export function SignUp() {
     setLoading(true);
     
     try {
-      // First create the auth user
+      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -32,7 +33,8 @@ export function SignUp() {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            role: formData.role
+            role: formData.role,
+            business_name: formData.businessName
           }
         }
       });
@@ -40,25 +42,42 @@ export function SignUp() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Then create the profile in the public.users table
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .upsert({
-            id: authData.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            business_role: formData.role === 'business' ? 'owner' : null
-          });
+        // Create user profile
+        const profileData = {
+          id: authData.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          business_role: formData.role === 'business' ? 'owner' : null
+        };
 
-        if (profileError) throw profileError;
+        // For business users, also create a business record
+        if (formData.role === 'business') {
+          const { data: businessData, error: businessError } = await supabase
+            .from('businesses')
+            .insert({
+              name: formData.businessName,
+              email: formData.email,
+              is_active: true
+            })
+            .select()
+            .single();
 
-        showSuccess('Account created successfully! Please check your email to verify your account.');
+          if (businessError) throw businessError;
+
+          // Link business to user
+          await supabase
+            .from('user_profiles')
+            .update({ business_id: businessData.id })
+            .eq('id', authData.user.id);
+        }
+
+        showSuccess('Account created successfully!');
         navigate('/login');
       }
     } catch (error) {
       console.error('Signup error:', error);
-      showError(error.message || 'Failed to create account. Please try again.');
+      showError(error.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -92,6 +111,19 @@ export function SignUp() {
             </div>
           </div>
 
+          {formData.role === 'business' && (
+            <div>
+              <Label htmlFor="businessName">Business Name</Label>
+              <Input
+                id="businessName"
+                type="text"
+                required={formData.role === 'business'}
+                value={formData.businessName}
+                onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+              />
+            </div>
+          )}
+
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -121,7 +153,7 @@ export function SignUp() {
               <Button
                 type="button"
                 variant={formData.role === 'concierge' ? 'default' : 'outline'}
-                onClick={() => setFormData({...formData, role: 'concierge'})}
+                onClick={() => setFormData({...formData, role: 'concierge', businessName: ''})}
               >
                 Concierge
               </Button>
