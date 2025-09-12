@@ -48,7 +48,8 @@ export function SignUp() {
           email: formData.email,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          business_role: formData.role === 'business' ? 'owner' : null
+          business_role: formData.role === 'business' ? 'owner' : null,
+          business_name: formData.businessName // Store for both account types
         };
 
         // For business users, also create a business record
@@ -111,18 +112,21 @@ export function SignUp() {
             </div>
           </div>
 
-          {formData.role === 'business' && (
-            <div>
-              <Label htmlFor="businessName">Business Name</Label>
-              <Input
-                id="businessName"
-                type="text"
-                required={formData.role === 'business'}
-                value={formData.businessName}
-                onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-              />
-            </div>
-          )}
+          <div>
+            <Label htmlFor="businessName">
+              {formData.role === 'business' ? 'Business Name' : 'Organization Name'}
+            </Label>
+            <Input
+              id="businessName"
+              type="text"
+              required
+              value={formData.businessName}
+              onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+              placeholder={formData.role === 'business' ? 
+                'Your business name' : 
+                'Your organization or company name (optional)'}
+            />
+          </div>
 
           <div>
             <Label htmlFor="email">Email</Label>
@@ -153,7 +157,7 @@ export function SignUp() {
               <Button
                 type="button"
                 variant={formData.role === 'concierge' ? 'default' : 'outline'}
-                onClick={() => setFormData({...formData, role: 'concierge', businessName: ''})}
+                onClick={() => setFormData({...formData, role: 'concierge'})}
               >
                 Concierge
               </Button>
