@@ -10,10 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function SignUp() {
   const [formData, setFormData] = useState({
-    email: 'test@example.com', // Default for testing
-    password: 'password123',  // Default for testing
-    firstName: 'Test',
-    lastName: 'User',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
     role: 'concierge'
   });
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export function SignUp() {
     setLoading(true);
     
     try {
-      // 1. Sign up user with Supabase Auth
+      // First create the auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -37,31 +37,25 @@ export function SignUp() {
         }
       });
 
-      if (authError) {
-        throw authError;
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Then create the profile in the public.users table
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            business_role: formData.role === 'business' ? 'owner' : null
+          });
+
+        if (profileError) throw profileError;
+
+        showSuccess('Account created successfully! Please check your email to verify your account.');
+        navigate('/login');
       }
-
-      if (!authData.user) {
-        throw new Error('User creation failed');
-      }
-
-      // 2. Create user profile in public.user_profiles table
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .upsert({
-          id: authData.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          business_role: formData.role === 'business' ? 'owner' : null
-        });
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      showSuccess('Account created successfully! Please check your email to verify your account.');
-      navigate('/login');
     } catch (error) {
       console.error('Signup error:', error);
       showError(error.message || 'Failed to create account. Please try again.');
@@ -75,7 +69,72 @@ export function SignUp() {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
         <h2 className="text-2xl font-bold text-center">Create an Account</h2>
         <form className="space-y-6" onSubmit={handleSignUp}>
-          {/* Form fields remain the same as before */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={6}
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <Label>Account Type</Label>
+            <div className="flex space-x-4 mt-2">
+              <Button
+                type="button"
+                variant={formData.role === 'concierge' ? 'default' : 'outline'}
+                onClick={() => setFormData({...formData, role: 'concierge'})}
+              >
+                Concierge
+              </Button>
+              <Button
+                type="button"
+                variant={formData.role === 'business' ? 'default' : 'outline'}
+                onClick={() => setFormData({...formData, role: 'business'})}
+              >
+                Business
+              </Button>
+            </div>
+          </div>
+
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
@@ -85,6 +144,12 @@ export function SignUp() {
             ) : 'Sign Up'}
           </Button>
         </form>
+        <div className="text-center text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-500 hover:underline">
+            Sign in
+          </Link>
+        </div>
       </div>
     </div>
   );
