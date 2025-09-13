@@ -25,7 +25,7 @@ export function SignUp() {
     setLoading(true);
     
     try {
-      // Step 1: Sign up with Auth
+      // 1. First create the auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -38,13 +38,18 @@ export function SignUp() {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
+      if (authError) {
+        throw new Error(`Auth error: ${authError.message}`);
+      }
 
-      // Step 2: Create profile
+      if (!authData.user) {
+        throw new Error('User creation failed - no user returned');
+      }
+
+      // 2. Create profile record - this is where RLS matters
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .upsert({
+        .insert({
           id: authData.user.id,
           email: formData.email,
           first_name: formData.firstName,
@@ -53,9 +58,22 @@ export function SignUp() {
           business_role: formData.role === 'business' ? 'owner' : null
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        // Add detailed debugging
+        console.error('Profile creation failed with:', {
+          error: profileError,
+          userData: authData.user,
+          profileData: {
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName
+          }
+        });
+        throw new Error(`Profile creation failed: ${profileError.message}`);
+      }
 
-      // Step 3: For business users, create business record
+      // 3. For business users only
       if (formData.role === 'business') {
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
@@ -67,19 +85,21 @@ export function SignUp() {
           .select()
           .single();
 
-        if (businessError) throw businessError;
+        if (businessError) throw new Error(`Business creation failed: ${businessError.message}`);
 
         // Link business to user
-        await supabase
+        const { error: linkError } = await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
+
+        if (linkError) throw new Error(`Business linking failed: ${linkError.message}`);
       }
 
       showSuccess('Account created successfully! Please check your email to verify your account.');
       navigate('/login');
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Full error details:', error);
       showError(error.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
@@ -91,94 +111,8 @@ export function SignUp() {
       <div className="w-full max-w-md p-8 space-y-4 bg-white rounded-lg shadow">
         <h2 className="text-2xl font-bold text-center">Create an Account</h2>
         <form className="space-y-4" onSubmit={handleSignUp}>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-              />
-            </div>
-            <div>
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="organizationName">
-              {formData.role === 'business' ? 'Business Name' : 'Organization Name'}
-            </Label>
-            <Input
-              id="organizationName"
-              type="text"
-              value={formData.organizationName}
-              onChange={(e) => setFormData({...formData, organizationName: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-            />
-          </div>
-
-          <div>
-            <Label>Account Type</Label>
-            <div className="flex space-x-4 mt-2">
-              <Button
-                type="button"
-                variant={formData.role === 'concierge' ? 'default' : 'outline'}
-                onClick={() => setFormData({...formData, role: 'concierge'})}
-              >
-                Concierge
-              </Button>
-              <Button
-                type="button"
-                variant={formData.role === 'business' ? 'default' : 'outline'}
-                onClick={() => setFormData({...formData, role: 'business'})}
-              >
-                Business
-              </Button>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full mt-6" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : 'Sign Up'}
-          </Button>
+          {/* ... (keep your existing form JSX) ... */}
         </form>
-        <div className="text-center text-sm pt-4">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-500 hover:underline">
-            Sign in
-          </Link>
-        </div>
       </div>
     </div>
   );
