@@ -10,11 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function SignUp() {
   const [formData, setFormData] = useState({
-    email: 'test@example.com',
-    password: 'password123',
-    firstName: 'Test',
-    lastName: 'User',
-    organizationName: 'Test Org',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    organizationName: '',
     role: 'concierge'
   });
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,6 @@ export function SignUp() {
     setLoading(true);
     
     try {
-      // 1. First create the auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -38,15 +37,9 @@ export function SignUp() {
         }
       });
 
-      if (authError) {
-        throw new Error(`Auth error: ${authError.message}`);
-      }
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
 
-      if (!authData.user) {
-        throw new Error('User creation failed - no user returned');
-      }
-
-      // 2. Create profile record - this is where RLS matters
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
@@ -58,22 +51,8 @@ export function SignUp() {
           business_role: formData.role === 'business' ? 'owner' : null
         });
 
-      if (profileError) {
-        // Add detailed debugging
-        console.error('Profile creation failed with:', {
-          error: profileError,
-          userData: authData.user,
-          profileData: {
-            id: authData.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName
-          }
-        });
-        throw new Error(`Profile creation failed: ${profileError.message}`);
-      }
+      if (profileError) throw profileError;
 
-      // 3. For business users only
       if (formData.role === 'business') {
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
@@ -85,22 +64,18 @@ export function SignUp() {
           .select()
           .single();
 
-        if (businessError) throw new Error(`Business creation failed: ${businessError.message}`);
+        if (businessError) throw businessError;
 
-        // Link business to user
-        const { error: linkError } = await supabase
+        await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
-
-        if (linkError) throw new Error(`Business linking failed: ${linkError.message}`);
       }
 
-      showSuccess('Account created successfully! Please check your email to verify your account.');
+      showSuccess('Account created! Please verify your email.');
       navigate('/login');
-    } catch (error: any) {
-      console.error('Full error details:', error);
-      showError(error.message || 'Failed to create account. Please try again.');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Signup failed');
     } finally {
       setLoading(false);
     }
@@ -108,11 +83,113 @@ export function SignUp() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md p-8 space-y-4 bg-white rounded-lg shadow">
-        <h2 className="text-2xl font-bold text-center">Create an Account</h2>
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Create an Account</h1>
+          <p className="text-muted-foreground">Join us today to get started</p>
+        </div>
+        
         <form className="space-y-4" onSubmit={handleSignUp}>
-          {/* ... (keep your existing form JSX) ... */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organizationName">Organization Name</Label>
+            <Input
+              id="organizationName"
+              placeholder="Acme Inc"
+              value={formData.organizationName}
+              onChange={(e) => setFormData({...formData, organizationName: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Account Type</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="concierge"
+                  checked={formData.role === 'concierge'}
+                  onChange={() => setFormData({...formData, role: 'concierge'})}
+                  className="h-4 w-4"
+                />
+                Concierge
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="business"
+                  checked={formData.role === 'business'}
+                  onChange={() => setFormData({...formData, role: 'business'})}
+                  className="h-4 w-4"
+                />
+                Business Owner
+              </label>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating account...
+              </>
+            ) : 'Sign Up'}
+          </Button>
         </form>
+
+        <div className="text-center text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>
+        </div>
       </div>
     </div>
   );
