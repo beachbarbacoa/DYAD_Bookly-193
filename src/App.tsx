@@ -42,17 +42,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col">
-          <AppHeader />
-          <main className="flex-1">
-            <RouterProvider router={router} />
-          </main>
-        </div>
+        <RouterProvider router={router}>
+          <div className="min-h-screen flex flex-col">
+            <AppHeader />
+            <main className="flex-1">
+              {/* RouterProvider will render the matched route here */}
+            </main>
+          </div>
+        </RouterProvider>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   )
 }
 
-// THIS IS THE CRUCIAL LINE THAT WAS MISSING:
 export default App
