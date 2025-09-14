@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { showError, showSuccess } from '@/utils/toast';
 import { startSessionHeartbeat } from '@/utils/sessionHeartbeat';
 
@@ -14,27 +15,19 @@ interface AuthState {
 interface AuthActions {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  onAuthSuccess?: (role: string) => void;
-  onAuthFailure?: () => void;
 }
 
 const AuthContext = createContext<(AuthState & AuthActions) | undefined>(undefined);
 
-export const AuthProvider = ({ 
-  children,
-  onAuthSuccess,
-  onAuthFailure
-}: { 
-  children: ReactNode;
-  onAuthSuccess?: (role: string) => void;
-  onAuthFailure?: () => void;
-}) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     role: null,
     isLoading: true,
     session: null
   });
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const checkUserRole = useCallback(async (userId: string) => {
     try {
@@ -60,7 +53,11 @@ export const AuthProvider = ({
         isLoading: false,
         session
       });
-      onAuthSuccess?.(role);
+      
+      const targetPath = role === 'admin' ? '/business/dashboard' : '/concierge/dashboard';
+      if (!location.pathname.startsWith(targetPath)) {
+        navigate(targetPath, { replace: true });
+      }
     } else {
       setState({
         user: null,
@@ -68,31 +65,11 @@ export const AuthProvider = ({
         isLoading: false,
         session: null
       });
-      onAuthFailure?.();
+      if (!['/login', '/signup'].includes(location.pathname)) {
+        navigate('/login', { replace: true });
+      }
     }
-  }, [checkUserRole, onAuthSuccess, onAuthFailure]);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } catch (error) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      throw error;
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      throw error;
-    }
-  }, []);
+  }, [checkUserRole, navigate, location]);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -110,6 +87,29 @@ export const AuthProvider = ({
     return () => subscription.unsubscribe();
   }, [handleAuthChange]);
 
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate('/login');
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, [navigate]);
+
   return (
     <AuthContext.Provider value={{ ...state, signIn, signOut }}>
       {children}
@@ -117,6 +117,7 @@ export const AuthProvider = ({
   );
 };
 
+// Make sure this export is present and properly typed
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

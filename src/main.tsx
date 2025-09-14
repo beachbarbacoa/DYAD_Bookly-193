@@ -1,6 +1,5 @@
-import { createRoot } from 'react-dom/client'
-import App from './App'
-import './globals.css'
+import { createRoot } from "react-dom/client";
+import App from "./App";  // This should be a default import
+import "./globals.css";
 
-const root = createRoot(document.getElementById('root')!)
-root.render(<App />)
+createRoot(document.getElementById("root")!).render(<App />);
