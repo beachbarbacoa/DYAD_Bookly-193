@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { showError, showSuccess } from '@/utils/toast';
 import { startSessionHeartbeat } from '@/utils/sessionHeartbeat';
 
@@ -15,19 +14,27 @@ interface AuthState {
 interface AuthActions {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  onAuthSuccess?: (role: string) => void;
+  onAuthFailure?: () => void;
 }
 
 const AuthContext = createContext<(AuthState & AuthActions) | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({ 
+  children,
+  onAuthSuccess,
+  onAuthFailure
+}: { 
+  children: ReactNode;
+  onAuthSuccess?: (role: string) => void;
+  onAuthFailure?: () => void;
+}) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     role: null,
     isLoading: true,
     session: null
   });
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const checkUserRole = useCallback(async (userId: string) => {
     try {
@@ -53,11 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading: false,
         session
       });
-      
-      const targetPath = role === 'admin' ? '/business/dashboard' : '/concierge/dashboard';
-      if (!location.pathname.startsWith(targetPath)) {
-        navigate(targetPath, { replace: true });
-      }
+      onAuthSuccess?.(role);
     } else {
       setState({
         user: null,
@@ -65,27 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading: false,
         session: null
       });
-      if (!['/login', '/signup'].includes(location.pathname)) {
-        navigate('/login', { replace: true });
-      }
+      onAuthFailure?.();
     }
-  }, [checkUserRole, navigate, location]);
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await handleAuthChange('SIGNED_IN', session);
-      } else {
-        setState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
-    return () => subscription.unsubscribe();
-  }, [handleAuthChange]);
+  }, [checkUserRole, onAuthSuccess, onAuthFailure]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
@@ -103,12 +88,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setState(prev => ({ ...prev, isLoading: true }));
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/login');
     } catch (error) {
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
-  }, [navigate]);
+  }, []);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await handleAuthChange('SIGNED_IN', session);
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    return () => subscription.unsubscribe();
+  }, [handleAuthChange]);
 
   return (
     <AuthContext.Provider value={{ ...state, signIn, signOut }}>
@@ -117,7 +117,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Make sure this export is present and properly typed
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
