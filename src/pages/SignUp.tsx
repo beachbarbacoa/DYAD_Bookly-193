@@ -1,22 +1,30 @@
-// ... (keep all existing imports)
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { showError, showSuccess } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function SignUp() {
-  // ... (keep existing state declarations)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    organizationName: '',
+    role: 'concierge'
+  });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      // ... (keep existing validation code)
-
-      // Debug log
-      console.log('Attempting to create auth user with:', {
-        email: formData.email,
-        role: formData.role
-      });
-
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -29,44 +37,23 @@ export function SignUp() {
         }
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
-      if (!authData.user) {
-        throw new Error('User creation failed - no user returned');
-      }
-
-      console.log('Auth user created:', authData.user.id);
-
-      // Create user profile with explicit error handling
-      const profileData = {
-        id: authData.user.id,
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        organization_name: formData.organizationName,
-        business_role: formData.role === 'business' ? 'owner' : null
-      };
-
-      console.log('Creating profile with:', profileData);
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User creation failed');
 
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert(profileData);
+        .insert({
+          id: authData.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          organization_name: formData.organizationName,
+          business_role: formData.role === 'business' ? 'owner' : null
+        });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Try to delete auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
-      console.log('Profile created successfully');
-
-      // For business users, create business record
       if (formData.role === 'business') {
-        console.log('Creating business record...');
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
           .insert({
@@ -77,38 +64,133 @@ export function SignUp() {
           .select()
           .single();
 
-        if (businessError) {
-          console.error('Business creation error:', businessError);
-          throw businessError;
-        }
+        if (businessError) throw businessError;
 
-        console.log('Business created:', businessData.id);
-
-        // Link business to user
-        const { error: linkError } = await supabase
+        await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
-
-        if (linkError) {
-          console.error('Business link error:', linkError);
-          throw linkError;
-        }
       }
 
       showSuccess('Account created! Please verify your email.');
       navigate('/login');
     } catch (error) {
-      console.error('Full signup error:', error);
-      showError(
-        error instanceof Error ? 
-        `Signup failed: ${error.message}` : 
-        'Signup failed. Please try again.'
-      );
+      showError(error instanceof Error ? error.message : 'Signup failed');
     } finally {
       setLoading(false);
     }
   };
 
-  // ... (keep the rest of the component code)
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Create an Account</h1>
+          <p className="text-muted-foreground">Join us today to get started</p>
+        </div>
+        
+        <form className="space-y-4" onSubmit={handleSignUp}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="organizationName">Organization Name</Label>
+            <Input
+              id="organizationName"
+              placeholder="Acme Inc"
+              value={formData.organizationName}
+              onChange={(e) => setFormData({...formData, organizationName: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Account Type</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="concierge"
+                  checked={formData.role === 'concierge'}
+                  onChange={() => setFormData({...formData, role: 'concierge'})}
+                  className="h-4 w-4"
+                />
+                Concierge
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="role"
+                  value="business"
+                  checked={formData.role === 'business'}
+                  onChange={() => setFormData({...formData, role: 'business'})}
+                  className="h-4 w-4"
+                />
+                Business Owner
+              </label>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating account...
+              </>
+            ) : 'Sign Up'}
+          </Button>
+        </form>
+
+        <div className="text-center text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
