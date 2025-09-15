@@ -114,7 +114,11 @@ export function SignUp() {
       showSuccess('Account created! Please verify your email.');
       navigate('/login');
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Signup error:', error, {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
       
       // Cleanup partial user records on failure
       if (authData?.user?.id) {

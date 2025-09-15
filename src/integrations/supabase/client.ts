@@ -13,7 +13,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    flowType: 'pkce' // Important for Next.js/React apps
+    flowType: 'pkce',
+    // @ts-ignore - site property is valid but not in type definitions
+    site: import.meta.env.VITE_SITE_URL || 'http://localhost:5173'
   }
 });
 
