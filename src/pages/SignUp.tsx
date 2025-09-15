@@ -11,7 +11,10 @@ import { z } from 'zod';
 
 // Form validation schema
 const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email address').refine(
+    email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    { message: 'Email address must be in a valid format' }
+  ),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
@@ -53,7 +56,7 @@ export function SignUp() {
 
       // Create auth user without metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password
       });
 
@@ -66,7 +69,7 @@ export function SignUp() {
         throw new Error('User creation failed');
       }
 
-      // Create user in public.users table first
+      // Create user in public.users table
       const { error: userError } = await supabase
         .from('users')
         .insert({
@@ -82,11 +85,11 @@ export function SignUp() {
 
       console.log('User created in public.users');
 
-      // Create user profile
+      // Create user profile with same ID
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
-          user_id: authData.user.id,
+          id: authData.user.id,  // Use same ID as users table
           first_name: formData.firstName,
           last_name: formData.lastName,
           organization_name: formData.organizationName
@@ -138,7 +141,12 @@ export function SignUp() {
         }
       }
       
-      showError(error instanceof Error ? error.message : 'Signup failed. Please try again.');
+      // Custom error messages for specific Supabase errors
+      if (error instanceof Error && 'code' in error && error.code === 'email_address_invalid') {
+        showError('The email domain is not allowed. Please use a different email address.');
+      } else {
+        showError(error instanceof Error ? error.message : 'Signup failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
