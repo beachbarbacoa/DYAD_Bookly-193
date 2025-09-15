@@ -10,12 +10,14 @@ import BusinessDashboard from '@/pages/business/Dashboard';
 import ConciergeDashboard from '@/pages/concierge/Dashboard';
 import ReservationPage from '@/pages/reserve/[businessId]';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AppHeader } from '@/components/AppHeader';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <AppHeader />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
