@@ -51,17 +51,10 @@ export function SignUp() {
       // Clear any previous errors
       setErrors({});
 
-      // Create auth user
+      // Create auth user without metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            role: formData.role
-          }
-        }
+        password: formData.password
       });
 
       if (authError) throw authError;
@@ -76,7 +69,7 @@ export function SignUp() {
           first_name: formData.firstName,
           last_name: formData.lastName,
           organization_name: formData.organizationName,
-          business_role: formData.role === 'business' ? 'admin' : null
+          role: formData.role === 'business' ? 'business_owner' : 'concierge'
         });
 
       if (profileError) throw profileError;
