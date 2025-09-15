@@ -76,7 +76,7 @@ export function SignUp() {
           first_name: formData.firstName,
           last_name: formData.lastName,
           organization_name: formData.organizationName,
-          business_role: formData.role === 'business' ? 'owner' : null
+          business_role: formData.role === 'business' ? 'admin' : null
         });
 
       if (profileError) throw profileError;
@@ -108,6 +108,20 @@ export function SignUp() {
       navigate('/login');
     } catch (error) {
       console.error('Signup error:', error);
+      
+      // Log specific error details
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        
+        // Check for Supabase API errors
+        if ('code' in error) {
+          console.error('Supabase error code:', (error as any).code);
+        }
+        if ('details' in error) {
+          console.error('Supabase details:', (error as any).details);
+        }
+      }
+      
       showError(error instanceof Error ? error.message : 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
