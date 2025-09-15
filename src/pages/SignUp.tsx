@@ -57,11 +57,17 @@ export function SignUp() {
         password: formData.password
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
+      if (authError) {
+        console.error('Auth signUp error:', authError);
+        throw authError;
+      }
+      if (!authData.user) {
+        console.error('No user data returned from auth.signUp');
+        throw new Error('User creation failed');
+      }
 
       // Create user profile with auth user ID
-      const { error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .insert({
           id: authData.user.id,
@@ -70,9 +76,14 @@ export function SignUp() {
           last_name: formData.lastName,
           organization_name: formData.organizationName,
           role: formData.role === 'business' ? 'business_owner' : 'concierge'
-        });
+        })
+        .select();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
+      console.log('Profile created:', profileData);
 
       // For business users, create business record
       if (formData.role === 'business') {
