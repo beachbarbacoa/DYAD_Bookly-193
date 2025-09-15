@@ -16,7 +16,7 @@ const signUpSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   organizationName: z.string().min(1, 'Organization name is required'),
-  role: z.enum(['concierge', 'business'])
+  role: z.enum(['concierge', 'business'] as const)
 });
 
 export function SignUp() {
@@ -26,7 +26,7 @@ export function SignUp() {
     firstName: '',
     lastName: '',
     organizationName: '',
-    role: 'concierge' as const
+    role: 'concierge' as 'concierge' | 'business'
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,7 +67,7 @@ export function SignUp() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('User creation failed');
 
-      // Create user profile
+      // Create user profile with auth user ID
       const { error: profileError } = await supabase
         .from('user_profiles')
         .insert({
@@ -95,11 +95,13 @@ export function SignUp() {
 
         if (businessError) throw businessError;
 
-        // Link business to user
-        await supabase
+        // Link business to user using auth user ID
+        const { error: linkError } = await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
           .eq('id', authData.user.id);
+
+        if (linkError) throw linkError;
       }
 
       showSuccess('Account created! Please verify your email.');
