@@ -66,24 +66,36 @@ export function SignUp() {
         throw new Error('User creation failed');
       }
 
-      // Create user profile with auth user ID
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
+      // Create user in public.users table first
+      const { error: userError } = await supabase
+        .from('users')
         .insert({
           id: authData.user.id,
           email: formData.email,
+          role: formData.role === 'business' ? 'business_owner' : 'concierge'
+        });
+
+      if (userError) {
+        console.error('User creation error:', userError);
+        throw userError;
+      }
+
+      console.log('User created in public.users');
+
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: authData.user.id,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          organization_name: formData.organizationName,
-          role: formData.role === 'business' ? 'business_owner' : 'concierge'
-        })
-        .select();
+          organization_name: formData.organizationName
+        });
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
         throw profileError;
       }
-      console.log('Profile created:', profileData);
 
       // For business users, create business record
       if (formData.role === 'business') {
