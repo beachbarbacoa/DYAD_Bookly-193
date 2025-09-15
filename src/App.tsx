@@ -2,6 +2,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login } from '@/pages/Login';
 import { SignUp } from '@/pages/SignUp';
+import AuthCallback from '@/pages/AuthCallback';
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
 import BusinessDashboard from '@/pages/business/Dashboard';
@@ -22,6 +23,7 @@ function AuthWrapper() {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
           
           <Route path="/business/dashboard" element={
             <ProtectedRoute requiredRole="admin">

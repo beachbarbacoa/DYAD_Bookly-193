@@ -56,9 +56,13 @@ export function SignUp() {
       setErrors({});
 
       // Create auth user without metadata
+      const siteUrl = import.meta.env.VITE_SITE_URL || 'http://localhost:5173';
       const { data, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim(),
-        password: formData.password
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth-callback?email=${encodeURIComponent(formData.email.trim())}`
+        }
       });
       authData = data;
 
