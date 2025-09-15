@@ -48,19 +48,19 @@ export default function TestAuth() {
       
       <div className="space-y-4">
         <div className="space-x-2">
-          <Button onClick={() => createTestUser('concierge@test.com', 'password123', 'concierge')}>
+          <Button onClick={() => createTestUser(import.meta.env.VITE_TEST_CONCIERGE_EMAIL, import.meta.env.VITE_TEST_CONCIERGE_PASSWORD, 'concierge')}>
             Create Concierge User
           </Button>
-          <Button onClick={() => createTestUser('business@test.com', 'password123', 'business')}>
+          <Button onClick={() => createTestUser(import.meta.env.VITE_TEST_BUSINESS_EMAIL, import.meta.env.VITE_TEST_BUSINESS_PASSWORD, 'business')}>
             Create Business User
           </Button>
         </div>
 
         <div className="space-x-2">
-          <Button onClick={() => testSignIn('concierge@test.com', 'password123')}>
+          <Button onClick={() => testSignIn(import.meta.env.VITE_TEST_CONCIERGE_EMAIL, import.meta.env.VITE_TEST_CONCIERGE_PASSWORD)}>
             Test Concierge Login
           </Button>
-          <Button onClick={() => testSignIn('business@test.com', 'password123')}>
+          <Button onClick={() => testSignIn(import.meta.env.VITE_TEST_BUSINESS_EMAIL, import.meta.env.VITE_TEST_BUSINESS_PASSWORD)}>
             Test Business Login
           </Button>
           <Button onClick={signOut}>Sign Out</Button>

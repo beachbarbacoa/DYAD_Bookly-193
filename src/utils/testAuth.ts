@@ -41,9 +41,14 @@ export async function testAuthCredentials(email: string, password: string) {
 
 export async function testAllAuth() {
   const testUsers = [
-    { email: 'concierge@test.com', password: 'password123' },
-    { email: 'business@test.com', password: 'password123' },
-    { email: 'test@example.com', password: 'password123' }
+    {
+      email: import.meta.env.VITE_TEST_CONCIERGE_EMAIL,
+      password: import.meta.env.VITE_TEST_CONCIERGE_PASSWORD
+    },
+    {
+      email: import.meta.env.VITE_TEST_BUSINESS_EMAIL,
+      password: import.meta.env.VITE_TEST_BUSINESS_PASSWORD
+    }
   ]
 
   for (const user of testUsers) {
