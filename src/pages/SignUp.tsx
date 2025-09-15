@@ -38,6 +38,7 @@ export function SignUp() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    let authData: { user?: { id: string } } | null = null;
     
     try {
       // Validate form data
@@ -55,51 +56,37 @@ export function SignUp() {
       setErrors({});
 
       // Create auth user without metadata
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password
       });
+      authData = data;
 
       if (authError) {
         console.error('Auth signUp error:', authError);
         throw authError;
       }
-      if (!authData.user) {
+      if (!authData?.user) {
         console.error('No user data returned from auth.signUp');
         throw new Error('User creation failed');
       }
 
-      // Create user in public.users table
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: formData.email,
-          role: formData.role === 'business' ? 'business_owner' : 'concierge'
-        });
+      // Create user with profile in a single transaction
+      const { error: createError } = await supabase.rpc('create_user_with_profile', {
+        user_id: authData.user.id,
+        user_email: formData.email,
+        user_role: formData.role === 'business' ? 'business_owner' : 'concierge',
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        organization_name: formData.organizationName
+      });
 
-      if (userError) {
-        console.error('User creation error:', userError);
-        throw userError;
+      if (createError) {
+        console.error('User creation error:', createError);
+        throw createError;
       }
 
-      console.log('User created in public.users');
-
-      // Create user profile with same ID
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: authData.user.id,  // Use same ID as users table
-          email: formData.email,  // Add email to satisfy not-null constraint
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          organization_name: formData.organizationName
-        });
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw profileError;
-      }
+      console.log('User and profile created successfully');
 
       // For business users, create business record
       if (formData.role === 'business') {
@@ -115,7 +102,7 @@ export function SignUp() {
 
         if (businessError) throw businessError;
 
-        // Link business to user using auth user ID
+        // Link business to user
         const { error: linkError } = await supabase
           .from('user_profiles')
           .update({ business_id: businessData.id })
@@ -129,24 +116,32 @@ export function SignUp() {
     } catch (error) {
       console.error('Signup error:', error);
       
-      // Log specific error details
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        
-        // Check for Supabase API errors
-        if ('code' in error) {
-          console.error('Supabase error code:', (error as any).code);
-        }
-        if ('details' in error) {
-          console.error('Supabase details:', (error as any).details);
-        }
+      // Cleanup partial user records on failure
+      if (authData?.user?.id) {
+        // Delete auth user first
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        // Then delete public tables
+        await supabase.from('users').delete().eq('id', authData.user.id);
+        await supabase.from('user_profiles').delete().eq('id', authData.user.id);
       }
       
-      // Custom error messages for specific Supabase errors
-      if (error instanceof Error && 'code' in error && error.code === 'email_address_invalid') {
-        showError('The email domain is not allowed. Please use a different email address.');
+      // Custom error messages
+      if (error instanceof Error) {
+        console.error('Error details:', error);
+        
+        if ('code' in error) {
+          if (error.code === '23505') {
+            showError('This account already exists. Please try logging in or use a different email.');
+          } else if (error.code === 'email_address_invalid') {
+            showError('The email domain is not allowed. Please use a different email address.');
+          } else {
+            showError(`Signup failed: ${error.message}`);
+          }
+        } else {
+          showError(error.message);
+        }
       } else {
-        showError(error instanceof Error ? error.message : 'Signup failed. Please try again.');
+        showError('Signup failed. Please try again.');
       }
     } finally {
       setLoading(false);

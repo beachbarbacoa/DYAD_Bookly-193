@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "docker info >/dev/null 2>&1 && npx supabase db push || echo 'Docker not running. Please start Docker Desktop and try again.'",
+    "gen:types": "npx supabase gen types typescript --project-id \"$(grep SUPABASE_PROJECT_ID .env | cut -d '=' -f2)\" --schema public > src/types/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
