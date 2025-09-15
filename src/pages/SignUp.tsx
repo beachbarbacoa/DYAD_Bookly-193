@@ -90,6 +90,7 @@ export function SignUp() {
         .from('user_profiles')
         .insert({
           id: authData.user.id,  // Use same ID as users table
+          email: formData.email,  // Add email to satisfy not-null constraint
           first_name: formData.firstName,
           last_name: formData.lastName,
           organization_name: formData.organizationName
