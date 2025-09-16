@@ -138,7 +138,7 @@ export function SignUp() {
         console.error('Error details:', error);
         
         if ('code' in error) {
-          if (error.code === '23505') {
+          if (error.code === '23505' || error.code === 'email_already_in_use') {
             showError('A user with this email already exists.');
           } else if (error.code === 'email_address_invalid') {
             showError('The email domain is not allowed. Please use a different email address.');
