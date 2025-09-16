@@ -133,21 +133,24 @@ export function SignUp() {
         await supabase.from('user_profiles').delete().eq('id', authData.user.id);
       }
       
+      // Helper to detect duplicate email errors
+      const isDuplicateEmailError = (err: any): boolean => {
+        if (!err) return false;
+        if (err.code === '23505') return true; // Database constraint
+        if (err.code === 'email_already_in_use') return true; // Auth error
+        if (err.message?.includes('already exists')) return true;
+        if (err.message?.includes('duplicate')) return true;
+        return false;
+      };
+      
       // Custom error messages
-      if (error instanceof Error) {
+      if (isDuplicateEmailError(error)) {
+        showError('A user with this email already exists.');
+      } else if (error?.code === 'email_address_invalid') {
+        showError('The email domain is not allowed. Please use a different email address.');
+      } else if (error instanceof Error) {
         console.error('Error details:', error);
-        
-        if ('code' in error) {
-          if (error.code === '23505' || error.code === 'email_already_in_use') {
-            showError('A user with this email already exists.');
-          } else if (error.code === 'email_address_invalid') {
-            showError('The email domain is not allowed. Please use a different email address.');
-          } else {
-            showError(`Signup failed: ${error.message}`);
-          }
-        } else {
-          showError(error.message);
-        }
+        showError(error.message || 'Signup failed. Please try again.');
       } else {
         showError('Signup failed. Please try again.');
       }

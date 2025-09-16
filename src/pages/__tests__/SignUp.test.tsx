@@ -76,7 +76,7 @@ describe('SignUp Component', () => {
     });
   });
 
-  it('should show duplicate email error when user already exists', async () => {
+  it('should show duplicate email error when user already exists (database constraint)', async () => {
     // Setup error mock with 23505 code (duplicate key)
     const { supabase } = await import('../../integrations/supabase/client');
     (supabase.auth.signUp as any).mockResolvedValueOnce({
@@ -84,6 +84,85 @@ describe('SignUp Component', () => {
       error: {
         code: '23505',
         message: 'duplicate key value violates unique constraint'
+      }
+    });
+
+    render(
+      <MemoryRouter>
+        <SignUp />
+      </MemoryRouter>
+    );
+
+    // Submit the form
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    // Wait for async operations
+    await waitFor(() => {
+      // Verify duplicate email error handling
+      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show duplicate email error when user already exists (auth error)', async () => {
+    // Setup error mock with email_already_in_use code
+    const { supabase } = await import('../../integrations/supabase/client');
+    (supabase.auth.signUp as any).mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: 'email_already_in_use',
+        message: 'User already registered'
+      }
+    });
+
+    render(
+      <MemoryRouter>
+        <SignUp />
+      </MemoryRouter>
+    );
+
+    // Submit the form
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    // Wait for async operations
+    await waitFor(() => {
+      // Verify duplicate email error handling
+      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show duplicate email error when error message contains "already exists"', async () => {
+    // Setup error mock with message containing "already exists"
+    const { supabase } = await import('../../integrations/supabase/client');
+    (supabase.auth.signUp as any).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: 'User already exists in system'
+      }
+    });
+
+    render(
+      <MemoryRouter>
+        <SignUp />
+      </MemoryRouter>
+    );
+
+    // Submit the form
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    // Wait for async operations
+    await waitFor(() => {
+      // Verify duplicate email error handling
+      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show duplicate email error when error message contains "duplicate"', async () => {
+    // Setup error mock with message containing "duplicate"
+    const { supabase } = await import('../../integrations/supabase/client');
+    (supabase.auth.signUp as any).mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: 'Duplicate entry for email'
       }
     });
 
