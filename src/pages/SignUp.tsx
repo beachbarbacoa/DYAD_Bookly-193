@@ -118,11 +118,11 @@ export function SignUp() {
       showSuccess('Account created! Please verify your email.');
       navigate('/login');
     } catch (error) {
-      console.error('Signup error:', error, {
-        code: error.code,
-        message: error.message,
-        details: error.details
-      });
+      // Log the full error for debugging
+      console.error('Full signup error object:', JSON.stringify(error, null, 2));
+      console.error('Signup error code:', error?.code);
+      console.error('Signup error message:', error?.message);
+      console.error('Signup error details:', error?.details);
       
       // Cleanup partial user records on failure
       if (authData?.user?.id) {
@@ -138,13 +138,15 @@ export function SignUp() {
         if (!err) return false;
         if (err.code === '23505') return true; // Database constraint
         if (err.code === 'email_already_in_use') return true; // Auth error
-        if (err.message?.includes('already exists')) return true;
-        if (err.message?.includes('duplicate')) return true;
+        const errMsg = (err.message || '').toLowerCase();
+        if (errMsg.includes('already exists')) return true;
+        if (errMsg.includes('duplicate')) return true;
         return false;
       };
       
       // Custom error messages
       if (isDuplicateEmailError(error)) {
+        console.error('Duplicate email error detected:', error);
         showError('User already exists. Please sign in.');
       } else if (error?.code === 'email_address_invalid') {
         showError('The email domain is not allowed. Please use a different email address.');
@@ -152,6 +154,7 @@ export function SignUp() {
         console.error('Error details:', error);
         showError(error.message || 'Signup failed. Please try again.');
       } else {
+        console.error('Unknown error type:', error);
         showError('Signup failed. Please try again.');
       }
     } finally {
