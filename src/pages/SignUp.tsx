@@ -139,7 +139,7 @@ export function SignUp() {
         
         if ('code' in error) {
           if (error.code === '23505') {
-            showError('This account already exists. Please try logging in or use a different email.');
+            showError('A user with this email already exists.');
           } else if (error.code === 'email_address_invalid') {
             showError('The email domain is not allowed. Please use a different email address.');
           } else {
