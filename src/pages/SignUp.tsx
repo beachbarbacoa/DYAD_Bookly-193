@@ -145,7 +145,7 @@ export function SignUp() {
       
       // Custom error messages
       if (isDuplicateEmailError(error)) {
-        showError('A user with this email already exists.');
+        showError('User already exists. Please sign in.');
       } else if (error?.code === 'email_address_invalid') {
         showError('The email domain is not allowed. Please use a different email address.');
       } else if (error instanceof Error) {

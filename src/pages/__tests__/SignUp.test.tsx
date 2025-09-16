@@ -99,7 +99,7 @@ describe('SignUp Component', () => {
     // Wait for async operations
     await waitFor(() => {
       // Verify duplicate email error handling
-      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+      expect(screen.getByText(/User already exists\. Please sign in\./i)).toBeInTheDocument();
     });
   });
 
@@ -126,7 +126,7 @@ describe('SignUp Component', () => {
     // Wait for async operations
     await waitFor(() => {
       // Verify duplicate email error handling
-      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+      expect(screen.getByText(/User already exists\. Please sign in\./i)).toBeInTheDocument();
     });
   });
 
@@ -152,7 +152,7 @@ describe('SignUp Component', () => {
     // Wait for async operations
     await waitFor(() => {
       // Verify duplicate email error handling
-      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+      expect(screen.getByText(/User already exists\. Please sign in\./i)).toBeInTheDocument();
     });
   });
 
@@ -178,7 +178,7 @@ describe('SignUp Component', () => {
     // Wait for async operations
     await waitFor(() => {
       // Verify duplicate email error handling
-      expect(screen.getByText(/A user with this email already exists/i)).toBeInTheDocument();
+      expect(screen.getByText(/User already exists\. Please sign in\./i)).toBeInTheDocument();
     });
   });
 });
