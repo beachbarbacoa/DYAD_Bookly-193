@@ -55,39 +55,31 @@ export function SignUp() {
       // Clear any previous errors
       setErrors({});
 
-      // Create auth user without metadata
       const siteUrl = import.meta.env.VITE_SITE_URL || 'http://localhost:5173';
-      const { data, error: authError } = await supabase.auth.signUp({
+      
+      // Create user with profile in a single transaction
+      const { data, error: createError } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password,
         options: {
-          emailRedirectTo: `${siteUrl}/auth-callback?email=${encodeURIComponent(formData.email.trim())}`
+          emailRedirectTo: `${siteUrl}/auth-callback?email=${encodeURIComponent(formData.email.trim())}`,
+          data: {
+            role: formData.role === 'business' ? 'business_owner' : 'concierge',
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            organization_name: formData.organizationName
+          }
         }
       });
       authData = data;
 
-      if (authError) {
-        console.error('Auth signUp error:', authError);
-        throw authError;
+      if (createError) {
+        console.error('User creation error:', createError);
+        throw createError;
       }
       if (!authData?.user) {
         console.error('No user data returned from auth.signUp');
         throw new Error('User creation failed');
-      }
-
-      // Create user with profile in a single transaction
-      const { error: createError } = await supabase.rpc('create_user_with_profile', {
-        user_id: authData.user.id,
-        user_email: formData.email,
-        user_role: formData.role === 'business' ? 'business_owner' : 'concierge',
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        organization_name: formData.organizationName
-      });
-
-      if (createError) {
-        console.error('User creation error:', createError);
-        throw createError;
       }
 
       console.log('User and profile created successfully');
